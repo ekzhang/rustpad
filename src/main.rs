@@ -1,9 +1,19 @@
 use warp::{filters::BoxedFilter, Filter, Reply};
 
-fn server() -> BoxedFilter<(impl Reply,)> {
-    (warp::path!("hello" / String).map(|name| format!("Hello, {}!", name)))
-        .or(warp::path::end().map(|| "Home page"))
+fn frontend() -> BoxedFilter<(impl Reply,)> {
+    warp::fs::dir("dist")
+        .or(warp::get().and(warp::fs::file("dist/index.html")))
         .boxed()
+}
+
+fn backend() -> BoxedFilter<(impl Reply,)> {
+    warp::path!("hello" / String)
+        .map(|name| format!("Hello, {}!", name))
+        .boxed()
+}
+
+fn server() -> BoxedFilter<(impl Reply,)> {
+    warp::path("api").and(backend()).or(frontend()).boxed()
 }
 
 #[tokio::main]
