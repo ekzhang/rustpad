@@ -1,9 +1,9 @@
 # Rustpad
 
 **Rustpad** is an _efficient_ and _minimal_ open-source collaborative text
-editor using the operational transformation (OT) algorithm. It has a client-side
-web interface that communicates by WebSocket with a central server storing
-in-memory data structures.
+editor based on the operational transformation (OT) algorithm. Rustpad provides
+an online real-time code editor that communicates via WebSocket with a central
+server storing in-memory data structures.
 
 The backend is written in Rust, using
 [Warp](https://github.com/seanmonstar/warp) and the open source
