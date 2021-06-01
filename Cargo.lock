@@ -801,13 +801,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustpad"
+name = "rustpad-core"
+version = "0.1.0"
+dependencies = [
+ "operational-transform",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "rustpad-server"
 version = "0.1.0"
 dependencies = [
  "dotenv",
  "futures",
  "log",
- "operational-transform",
+ "parking_lot",
  "pretty_env_logger",
  "serde",
  "serde_json",
