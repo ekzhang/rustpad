@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { duplicate } from "rustpad-core";
 
 function App() {
   const [input, setInput] = useState("");
@@ -6,9 +7,10 @@ function App() {
   const [messages, setMessages] = useState<[number, string][]>([]);
 
   useEffect(() => {
+    console.log(duplicate("Hello"));
     const uri =
-      (location.origin.startsWith("https") ? "wss://" : "ws://") +
-      location.host +
+      (window.location.origin.startsWith("https") ? "wss://" : "ws://") +
+      window.location.host +
       "/api/socket";
     const ws = new WebSocket(uri);
     console.log("connecting...");

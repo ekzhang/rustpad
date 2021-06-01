@@ -9,8 +9,8 @@ mod server;
 
 /// Construct routes for static files from React
 fn frontend() -> BoxedFilter<(impl Reply,)> {
-    warp::fs::dir("dist")
-        .or(warp::get().and(warp::fs::file("dist/index.html")))
+    warp::fs::dir("build")
+        .or(warp::get().and(warp::fs::file("build/index.html")))
         .boxed()
 }
 

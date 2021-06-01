@@ -4,7 +4,19 @@ version = "0.1.0"
 authors = ["Eric Zhang <ekzhang1@gmail.com>"]
 edition = "2018"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
 [dependencies]
+console_error_panic_hook = { version = "0.1", optional = true }
 operational-transform = "0.6.0"
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+js-sys = "0.3.51"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
