@@ -46,6 +46,16 @@ npm start
 This command will open a browser window to `http://localhost:3000`, with hot
 reloading on changes.
 
+## Testing
+
+To run unit tests and integration tests for the server, use the standard
+`cargo test` command. For the WebAssembly component, you can run tests in a
+headless browser with
+
+```
+wasm-pack test rustpad-core --chrome --headless
+```
+
 ## Deployment
 
 Rustpad is distributed as a single ~10 MB Docker image, which is built from the
