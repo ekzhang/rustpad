@@ -1,22 +1,61 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [input, setInput] = useState("");
+  const [socket, setSocket] = useState<WebSocket>();
+  const [messages, setMessages] = useState<[number, string][]>([]);
+
+  useEffect(() => {
+    const uri =
+      (location.origin.startsWith("https") ? "wss://" : "ws://") +
+      location.host +
+      "/api/socket";
+    const ws = new WebSocket(uri);
+    console.log("connecting...");
+    ws.onopen = () => {
+      console.log("connected!");
+      setSocket(ws);
+    };
+    ws.onmessage = ({ data }) => {
+      console.log("message:", data);
+      setMessages((messages) => [...messages, ...JSON.parse(data)]);
+    };
+    ws.onclose = () => {
+      console.log("disconnected!");
+      setSocket(undefined);
+    };
+    return () => ws.close();
+  }, []);
 
   return (
     <div className="container">
       <div className="row">
         <div className="one-half column" style={{ marginTop: "25%" }}>
-          <h4>Skeleton + React + Vite</h4>
-          <p>
-            This index.html page is a placeholder with the CSS, font and
-            favicon. It's just waiting for you to add some content! If you need
-            some help hit up the{" "}
-            <a href="http://www.getskeleton.com">Skeleton documentation</a>.
-          </p>
-          <button onClick={() => setCount((count) => count + 1)}>
-            count is: {count}
-          </button>
+          <h4>Chat Application</h4>
+          <p>Let's send some messages!</p>
+          <ul>
+            {messages.map(([sender, message], key) => (
+              <li key={key}>
+                <strong>User #{sender}:</strong> {message}
+              </li>
+            ))}
+          </ul>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              socket?.send(input);
+              setInput("");
+            }}
+          >
+            <input
+              className="u-full-width"
+              required
+              placeholder="Hello!"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+            />
+            <input className="button-primary" type="submit" />
+          </form>
         </div>
       </div>
     </div>
