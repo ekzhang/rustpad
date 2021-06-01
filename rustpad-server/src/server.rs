@@ -6,10 +6,8 @@ use std::time::Duration;
 
 use futures::prelude::*;
 use log::{error, info};
-use tokio::{
-    sync::{Notify, RwLock},
-    time,
-};
+use parking_lot::RwLock;
+use tokio::{sync::Notify, time};
 use warp::{
     filters::BoxedFilter,
     ws::{Message, WebSocket, Ws},
@@ -54,7 +52,7 @@ impl Rustpad {
         let mut revision: usize = 0;
 
         loop {
-            if self.num_messages().await > revision {
+            if self.num_messages() > revision {
                 match self.send_messages(revision, &mut socket).await {
                     Ok(new_revision) => revision = new_revision,
                     Err(e) => {
@@ -87,8 +85,8 @@ impl Rustpad {
         info!("disconnection, id = {}", id);
     }
 
-    async fn num_messages(&self) -> usize {
-        let state = self.state.read().await;
+    fn num_messages(&self) -> usize {
+        let state = self.state.read();
         state.messages.len()
     }
 
@@ -97,17 +95,21 @@ impl Rustpad {
         revision: usize,
         socket: &mut WebSocket,
     ) -> Result<usize, warp::Error> {
-        let state = self.state.read().await;
-        let len = state.messages.len();
-        if revision < len {
-            let messages = serde_json::to_string(&state.messages[revision..])
-                .expect("serde serialization failed for messages");
-            drop(state);
-            socket.send(Message::text(&messages)).await?;
-            Ok(len)
-        } else {
-            Ok(revision)
+        let messages = {
+            let state = self.state.read();
+            let len = state.messages.len();
+            if revision < len {
+                state.messages[revision..].to_owned()
+            } else {
+                Vec::new()
+            }
+        };
+        if !messages.is_empty() {
+            let serialized = serde_json::to_string(&messages)
+                .expect("serde serialization failed for messages vec");
+            socket.send(Message::text(&serialized)).await?;
         }
+        Ok(revision + messages.len())
     }
 
     async fn handle_message(&self, id: u64, message: Message) {
@@ -116,7 +118,7 @@ impl Rustpad {
             Err(()) => return, // Ignore non-text messages
         };
 
-        let mut state = self.state.write().await;
+        let mut state = self.state.write();
         state.messages.push((id, text));
         self.notify.notify_waiters();
     }
