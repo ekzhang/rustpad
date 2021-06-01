@@ -4,7 +4,6 @@ COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 RUN cargo build --release
 COPY . .
-RUN sudo touch src/main.rs
 RUN cargo test --release
 RUN cargo build --release
 
