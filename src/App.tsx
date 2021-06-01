@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { set_panic_hook } from "rustpad-core";
+import { set_panic_hook } from "rustpad-wasm";
 
 function App() {
   const [input, setInput] = useState("");

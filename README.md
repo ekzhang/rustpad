@@ -20,7 +20,7 @@ To run this application, you need to install Rust, `wasm-pack`, and Node.js.
 Then, build the WebAssembly portion of the app:
 
 ```
-wasm-pack build rustpad-core
+wasm-pack build rustpad-wasm
 ```
 
 When that is complete, you can install dependencies for the frontend React
@@ -53,7 +53,7 @@ To run unit tests and integration tests for the server, use the standard
 headless browser with
 
 ```
-wasm-pack test rustpad-core --chrome --headless
+wasm-pack test rustpad-wasm --chrome --headless
 ```
 
 ## Deployment

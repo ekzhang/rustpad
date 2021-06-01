@@ -8,10 +8,11 @@ edition = "2018"
 dotenv = "0.15.0"
 futures = "0.3.15"
 log = "0.4.14"
+operational-transform = { version = "0.6.0", features = ["serde"] }
+parking_lot = "0.11.1"
 pretty_env_logger = "0.4.0"
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 tokio = { version = "1.6.1", features = ["full"] }
 tokio-stream = "0.1.6"
 warp = "0.3.1"
-parking_lot = "0.11.1"

@@ -598,6 +598,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57b31bc8699a7bd5e43f63cfa9a1e48e2330cdf27f533370d5640fef63ab6910"
 dependencies = [
  "bytecount",
+ "serde",
 ]
 
 [[package]]
@@ -832,7 +833,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustpad-core"
+name = "rustpad-server"
+version = "0.1.0"
+dependencies = [
+ "dotenv",
+ "futures",
+ "log",
+ "operational-transform",
+ "parking_lot",
+ "pretty_env_logger",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+ "warp",
+]
+
+[[package]]
+name = "rustpad-wasm"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
@@ -842,22 +860,6 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-test",
-]
-
-[[package]]
-name = "rustpad-server"
-version = "0.1.0"
-dependencies = [
- "dotenv",
- "futures",
- "log",
- "parking_lot",
- "pretty_env_logger",
- "serde",
- "serde_json",
- "tokio",
- "tokio-stream",
- "warp",
 ]
 
 [[package]]

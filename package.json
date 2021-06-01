@@ -13,7 +13,7 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
-    "rustpad-core": "file:./rustpad-core/pkg"
+    "rustpad-wasm": "file:./rustpad-wasm/pkg"
   },
   "devDependencies": {
     "@types/react": "^17.0.8",

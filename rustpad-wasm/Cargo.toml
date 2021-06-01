@@ -1,5 +1,5 @@
 [package]
-name = "rustpad-core"
+name = "rustpad-wasm"
 version = "0.1.0"
 authors = ["Eric Zhang <ekzhang1@gmail.com>"]
 edition = "2018"
@@ -12,7 +12,7 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 console_error_panic_hook = { version = "0.1", optional = true }
-operational-transform = "0.6.0"
+operational-transform = { version = "0.6.0", features = ["serde"] }
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }

@@ -2,7 +2,7 @@
 
 #![cfg(target_arch = "wasm32")]
 
-use rustpad_core::OpSeq;
+use rustpad_wasm::OpSeq;
 
 use wasm_bindgen_test::*;
 
