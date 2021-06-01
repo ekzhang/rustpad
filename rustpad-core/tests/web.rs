@@ -40,3 +40,13 @@ fn transform_operations() {
     assert_eq!(ab_prime, ba_prime);
     assert_eq!(after_ab_prime, after_ba_prime);
 }
+
+#[wasm_bindgen_test]
+fn invert_operations() {
+    let s = "abc";
+    let mut o = OpSeq::default();
+    o.retain(3);
+    o.insert("def");
+    let p = o.invert(s);
+    assert_eq!(p.apply(&o.apply(s).unwrap()).unwrap(), s);
+}

@@ -21,6 +21,11 @@ pub struct OpSeqPair(OpSeq, OpSeq);
 
 #[wasm_bindgen]
 impl OpSeq {
+    /// Creates a default empty `OpSeq`.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Creates a store for operatations which does not need to allocate  until
     /// `capacity` operations have been stored inside.
     pub fn with_capacity(capacity: usize) -> Self {
