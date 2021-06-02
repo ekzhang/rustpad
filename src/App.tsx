@@ -17,7 +17,7 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
-import { VscAccount, VscRemote } from "react-icons/vsc";
+import { VscAccount, VscCircleFilled, VscRemote } from "react-icons/vsc";
 import Editor from "@monaco-editor/react";
 import Rustpad from "./rustpad";
 import languages from "./languages.json";
@@ -67,11 +67,19 @@ function App() {
         Rustpad
       </Box>
       <Flex flex="1 0" minH={0}>
-        <Flex direction="column" bgColor="#f3f3f3" w="sm" overflowY="auto">
+        <Flex direction="column" bgColor="#f3f3f3" w="xs" overflowY="auto">
           <Container maxW="full" lineHeight={1.4} py={4}>
-            <Text fontSize="sm" fontStyle="italic" color="gray.600">
-              {connected ? "You are connected!" : "Connecting to the server..."}
-            </Text>
+            <HStack spacing={1}>
+              <Icon
+                as={VscCircleFilled}
+                color={connected ? "green.500" : "orange.500"}
+              />
+              <Text fontSize="sm" fontStyle="italic" color="gray.600">
+                {connected
+                  ? "You are connected!"
+                  : "Connecting to the server..."}
+              </Text>
+            </HStack>
 
             <Heading mt={4} mb={1.5} size="sm">
               Language
@@ -142,14 +150,16 @@ function App() {
             </Text>
           </Container>
         </Flex>
-        <Editor
-          theme="vs"
-          language={language}
-          options={{
-            automaticLayout: true,
-            fontSize: 14,
-          }}
-        />
+        <Box flex={1} minW={0} h="100%">
+          <Editor
+            theme="vs"
+            language={language}
+            options={{
+              automaticLayout: true,
+              fontSize: 14,
+            }}
+          />
+        </Box>
       </Flex>
       <Flex h="22px" bgColor="#0071c3">
         <Flex
