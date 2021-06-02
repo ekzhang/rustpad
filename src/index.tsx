@@ -1,13 +1,15 @@
 import { StrictMode } from "react";
 import ReactDOM from "react-dom";
-import "./styles/normalize.css";
-import "./styles/skeleton.css";
+import { ChakraProvider } from "@chakra-ui/react";
+import "./index.css";
 
 // An asynchronous entry point is needed to load WebAssembly files.
 import("./App").then(({ default: App }) => {
   ReactDOM.render(
     <StrictMode>
-      <App />
+      <ChakraProvider>
+        <App />
+      </ChakraProvider>
     </StrictMode>,
     document.getElementById("root")
   );
