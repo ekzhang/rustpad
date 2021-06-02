@@ -3,10 +3,11 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
+use anyhow::{bail, Context, Result};
 use futures::prelude::*;
-use log::{error, info};
+use log::{info, warn};
 use operational_transform::OperationSeq;
-use parking_lot::RwLock;
+use parking_lot::{RwLock, RwLockUpgradableReadGuard};
 use serde::{Deserialize, Serialize};
 use tokio::{sync::Notify, time};
 use warp::ws::{Message, WebSocket};
@@ -22,22 +23,43 @@ pub struct Rustpad {
 /// Shared state involving multiple users, protected by a lock
 #[derive(Default)]
 struct State {
-    messages: Vec<(u64, String)>,
+    operations: Vec<UserOperation>,
+    text: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct UserOperation {
+    id: u64,
+    operation: OperationSeq,
 }
 
 /// A message received from the client over WebSocket
 #[derive(Clone, Debug, Serialize, Deserialize)]
 enum ClientMsg {
-    Edit { revision: usize, op: OperationSeq },
+    /// Represents a sequence of local edits from the user
+    Edit {
+        revision: usize,
+        operation: OperationSeq,
+    },
 }
 
 /// A message sent to the client over WebSocket
 #[derive(Clone, Debug, Serialize, Deserialize)]
 enum ServerMsg {
+    /// Informs the client of their unique socket ID
+    Identity(u64),
+    /// Broadcasts text operations to all clients
     History {
-        revision: usize,
-        ops: Vec<OperationSeq>,
+        start: usize,
+        operations: Vec<UserOperation>,
     },
+}
+
+impl From<ServerMsg> for Message {
+    fn from(msg: ServerMsg) -> Self {
+        let serialized = serde_json::to_string(&msg).expect("failed serialize");
+        Message::text(serialized)
+    }
 }
 
 impl Rustpad {
@@ -47,21 +69,35 @@ impl Rustpad {
     }
 
     /// Handle a connection from a WebSocket
-    pub async fn on_connection(&self, mut socket: WebSocket) {
+    pub async fn on_connection(&self, socket: WebSocket) {
         let id = self.count.fetch_add(1, Ordering::Relaxed);
         info!("connection! id = {}", id);
+        if let Err(e) = self.handle_connection(id, socket).await {
+            warn!("connection terminated early: {}", e);
+        }
+        info!("disconnection, id = {}", id);
+    }
+
+    /// Returns a snapshot of the latest text
+    pub fn text(&self) -> String {
+        let state = self.state.read();
+        state.text.clone()
+    }
+
+    /// Returns the current revision
+    pub fn revision(&self) -> usize {
+        let state = self.state.read();
+        state.operations.len()
+    }
+
+    async fn handle_connection(&self, id: u64, mut socket: WebSocket) -> Result<()> {
+        socket.send(ServerMsg::Identity(id).into()).await?;
 
         let mut revision: usize = 0;
 
         loop {
-            if self.num_messages() > revision {
-                match self.send_messages(revision, &mut socket).await {
-                    Ok(new_revision) => revision = new_revision,
-                    Err(e) => {
-                        error!("websocket error: {}", e);
-                        break;
-                    }
-                }
+            if self.revision() > revision {
+                revision = self.send_history(revision, &mut socket).await?
             }
 
             let sleep = time::sleep(Duration::from_millis(500));
@@ -72,56 +108,66 @@ impl Rustpad {
                 result = socket.next() => {
                     match result {
                         None => break,
-                        Some(Ok(message)) => {
-                            self.handle_message(id, message).await
-                        }
-                        Some(Err(e)) => {
-                            error!("websocket error: {}", e);
-                            break;
+                        Some(message) => {
+                            self.handle_message(id, message?).await?;
                         }
                     }
                 }
             }
         }
 
-        info!("disconnection, id = {}", id);
+        Ok(())
     }
 
-    fn num_messages(&self) -> usize {
-        let state = self.state.read();
-        state.messages.len()
-    }
-
-    async fn send_messages(
-        &self,
-        revision: usize,
-        socket: &mut WebSocket,
-    ) -> Result<usize, warp::Error> {
-        let messages = {
+    async fn send_history(&self, start: usize, socket: &mut WebSocket) -> Result<usize> {
+        let operations = {
             let state = self.state.read();
-            let len = state.messages.len();
-            if revision < len {
-                state.messages[revision..].to_owned()
+            let len = state.operations.len();
+            if start < len {
+                state.operations[start..].to_owned()
             } else {
                 Vec::new()
             }
         };
-        if !messages.is_empty() {
-            let serialized = serde_json::to_string(&messages)
-                .expect("serde serialization failed for messages vec");
-            socket.send(Message::text(&serialized)).await?;
+        let num_ops = operations.len();
+        if num_ops > 0 {
+            let msg = ServerMsg::History { start, operations };
+            socket.send(msg.into()).await?;
         }
-        Ok(revision + messages.len())
+        Ok(start + num_ops)
     }
 
-    async fn handle_message(&self, id: u64, message: Message) {
-        let text = match message.to_str() {
-            Ok(text) => String::from(text),
-            Err(()) => return, // Ignore non-text messages
+    async fn handle_message(&self, id: u64, message: Message) -> Result<()> {
+        let msg: ClientMsg = match message.to_str() {
+            Ok(text) => serde_json::from_str(text).context("failed to deserialize message")?,
+            Err(()) => return Ok(()), // Ignore non-text messages
         };
+        match msg {
+            ClientMsg::Edit {
+                revision,
+                operation,
+            } => {
+                self.apply_edit(id, revision, operation)
+                    .context("invalid edit operation")?;
+                self.notify.notify_waiters();
+            }
+        }
+        Ok(())
+    }
 
-        let mut state = self.state.write();
-        state.messages.push((id, text));
-        self.notify.notify_waiters();
+    fn apply_edit(&self, id: u64, revision: usize, mut operation: OperationSeq) -> Result<()> {
+        let state = self.state.upgradable_read();
+        let len = state.operations.len();
+        if revision > len {
+            bail!("got revision {}, but current is {}", revision, len);
+        }
+        for history_op in &state.operations[revision..] {
+            operation = operation.transform(&history_op.operation)?.0;
+        }
+        let new_text = operation.apply(&state.text)?;
+        let mut state = RwLockUpgradableReadGuard::upgrade(state);
+        state.operations.push(UserOperation { id, operation });
+        state.text = new_text;
+        Ok(())
     }
 }
