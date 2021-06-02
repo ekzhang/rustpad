@@ -1,4 +1,4 @@
-//! Utility functions
+//! Utility functions.
 
 use wasm_bindgen::prelude::*;
 

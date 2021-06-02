@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 use tokio::time;
 use warp::{filters::BoxedFilter, test::WsClient, Reply};
 
-/// A test WebSocket client that sends and receives JSON messages
+/// A test WebSocket client that sends and receives JSON messages.
 struct JsonSocket(WsClient);
 
 impl JsonSocket {
@@ -27,7 +27,7 @@ impl JsonSocket {
     }
 }
 
-/// Connect a new test client WebSocket
+/// Connect a new test client WebSocket.
 async fn connect(filter: &BoxedFilter<(impl Reply + 'static,)>) -> Result<JsonSocket> {
     let client = warp::test::ws()
         .path("/api/socket")
@@ -36,7 +36,7 @@ async fn connect(filter: &BoxedFilter<(impl Reply + 'static,)>) -> Result<JsonSo
     Ok(JsonSocket(client))
 }
 
-/// Check the text route
+/// Check the text route.
 async fn expect_text(filter: &BoxedFilter<(impl Reply + 'static,)>, text: &str) {
     let resp = warp::test::request().path("/api/text").reply(filter).await;
     assert_eq!(resp.status(), 200);

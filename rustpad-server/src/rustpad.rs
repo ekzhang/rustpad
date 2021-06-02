@@ -1,4 +1,4 @@
-//! Asynchronous systems logic for Rustpad
+//! Asynchronous systems logic for Rustpad.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use tokio::{sync::Notify, time};
 use warp::ws::{Message, WebSocket};
 
-/// The main object for a collaborative session
+/// The main object for a collaborative session.
 #[derive(Default)]
 pub struct Rustpad {
     state: RwLock<State>,
@@ -20,7 +20,7 @@ pub struct Rustpad {
     notify: Notify,
 }
 
-/// Shared state involving multiple users, protected by a lock
+/// Shared state involving multiple users, protected by a lock.
 #[derive(Default)]
 struct State {
     operations: Vec<UserOperation>,
@@ -33,22 +33,22 @@ struct UserOperation {
     operation: OperationSeq,
 }
 
-/// A message received from the client over WebSocket
+/// A message received from the client over WebSocket.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 enum ClientMsg {
-    /// Represents a sequence of local edits from the user
+    /// Represents a sequence of local edits from the user.
     Edit {
         revision: usize,
         operation: OperationSeq,
     },
 }
 
-/// A message sent to the client over WebSocket
+/// A message sent to the client over WebSocket.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 enum ServerMsg {
-    /// Informs the client of their unique socket ID
+    /// Informs the client of their unique socket ID.
     Identity(u64),
-    /// Broadcasts text operations to all clients
+    /// Broadcasts text operations to all clients.
     History {
         start: usize,
         operations: Vec<UserOperation>,
@@ -63,12 +63,12 @@ impl From<ServerMsg> for Message {
 }
 
 impl Rustpad {
-    /// Construct a new, empty Rustpad object
+    /// Construct a new, empty Rustpad object.
     pub fn new() -> Self {
         Default::default()
     }
 
-    /// Handle a connection from a WebSocket
+    /// Handle a connection from a WebSocket.
     pub async fn on_connection(&self, socket: WebSocket) {
         let id = self.count.fetch_add(1, Ordering::Relaxed);
         info!("connection! id = {}", id);
@@ -78,13 +78,13 @@ impl Rustpad {
         info!("disconnection, id = {}", id);
     }
 
-    /// Returns a snapshot of the latest text
+    /// Returns a snapshot of the latest text.
     pub fn text(&self) -> String {
         let state = self.state.read();
         state.text.clone()
     }
 
-    /// Returns the current revision
+    /// Returns the current revision.
     pub fn revision(&self) -> usize {
         let state = self.state.read();
         state.operations.len()

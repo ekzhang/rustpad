@@ -1,4 +1,4 @@
-//! Core logic for Rustpad, shared with the client through WebAssembly
+//! Core logic for Rustpad, shared with the client through WebAssembly.
 
 #![warn(missing_docs)]
 

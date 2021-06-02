@@ -1,4 +1,4 @@
-//! Server backend for the Rustpad collaborative text editor
+//! Server backend for the Rustpad collaborative text editor.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -10,19 +10,19 @@ use warp::{filters::BoxedFilter, ws::Ws, Filter, Reply};
 
 mod rustpad;
 
-/// A combined filter handling all server routes
+/// A combined filter handling all server routes.
 pub fn server() -> BoxedFilter<(impl Reply,)> {
     warp::path("api").and(backend()).or(frontend()).boxed()
 }
 
-/// Construct routes for static files from React
+/// Construct routes for static files from React.
 fn frontend() -> BoxedFilter<(impl Reply,)> {
     warp::fs::dir("build")
         .or(warp::get().and(warp::fs::file("build/index.html")))
         .boxed()
 }
 
-/// Construct backend routes, including WebSocket handlers
+/// Construct backend routes, including WebSocket handlers.
 fn backend() -> BoxedFilter<(impl Reply,)> {
     let rustpad = Arc::new(Rustpad::new());
     let rustpad = warp::any().map(move || Arc::clone(&rustpad));
