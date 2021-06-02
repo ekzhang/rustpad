@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use anyhow::{anyhow, Result};
 use log::info;
 use operational_transform::OperationSeq;
 use rustpad_server::server;
@@ -15,25 +16,24 @@ impl JsonSocket {
         self.0.send_text(msg.to_string()).await
     }
 
-    async fn recv(&mut self) -> Value {
-        let msg = self.0.recv().await.expect("recv failure");
-        let msg = msg.to_str().expect("non-string message");
-        serde_json::from_str(&msg).expect("non-json message")
+    async fn recv(&mut self) -> Result<Value> {
+        let msg = self.0.recv().await?;
+        let msg = msg.to_str().map_err(|_| anyhow!("non-string message"))?;
+        Ok(serde_json::from_str(&msg)?)
     }
 
-    async fn recv_closed(&mut self) {
-        self.0.recv_closed().await.unwrap()
+    async fn recv_closed(&mut self) -> Result<()> {
+        self.0.recv_closed().await.map_err(|e| e.into())
     }
 }
 
 /// Connect a new test client WebSocket
-async fn connect(filter: &BoxedFilter<(impl Reply + 'static,)>) -> JsonSocket {
+async fn connect(filter: &BoxedFilter<(impl Reply + 'static,)>) -> Result<JsonSocket> {
     let client = warp::test::ws()
         .path("/api/socket")
         .handshake(filter.clone())
-        .await
-        .expect("handshake failed");
-    JsonSocket(client)
+        .await?;
+    Ok(JsonSocket(client))
 }
 
 /// Check the text route
@@ -44,14 +44,14 @@ async fn expect_text(filter: &BoxedFilter<(impl Reply + 'static,)>, text: &str) 
 }
 
 #[tokio::test]
-async fn test_single_operation() {
+async fn test_single_operation() -> Result<()> {
     pretty_env_logger::try_init().ok();
     let filter = server();
 
     expect_text(&filter, "").await;
 
-    let mut client = connect(&filter).await;
-    let msg = client.recv().await;
+    let mut client = connect(&filter).await?;
+    let msg = client.recv().await?;
     assert_eq!(msg, json!({ "Identity": 0 }));
 
     let mut operation = OperationSeq::default();
@@ -65,7 +65,7 @@ async fn test_single_operation() {
     info!("sending ClientMsg {}", msg);
     client.send(&msg).await;
 
-    let msg = client.recv().await;
+    let msg = client.recv().await?;
     assert_eq!(
         msg,
         json!({
@@ -79,17 +79,18 @@ async fn test_single_operation() {
     );
 
     expect_text(&filter, "hello").await;
+    Ok(())
 }
 
 #[tokio::test]
-async fn test_invalid_operation() {
+async fn test_invalid_operation() -> Result<()> {
     pretty_env_logger::try_init().ok();
     let filter = server();
 
     expect_text(&filter, "").await;
 
-    let mut client = connect(&filter).await;
-    let msg = client.recv().await;
+    let mut client = connect(&filter).await?;
+    let msg = client.recv().await?;
     assert_eq!(msg, json!({ "Identity": 0 }));
 
     let mut operation = OperationSeq::default();
@@ -103,17 +104,18 @@ async fn test_invalid_operation() {
     info!("sending ClientMsg {}", msg);
     client.send(&msg).await;
 
-    client.recv_closed().await;
+    client.recv_closed().await?;
+    Ok(())
 }
 
 #[tokio::test]
-async fn test_concurrent_transform() {
+async fn test_concurrent_transform() -> Result<()> {
     pretty_env_logger::try_init().ok();
     let filter = server();
 
     // Connect the first client
-    let mut client = connect(&filter).await;
-    let msg = client.recv().await;
+    let mut client = connect(&filter).await?;
+    let msg = client.recv().await?;
     assert_eq!(msg, json!({ "Identity": 0 }));
 
     // Insert the first operation
@@ -128,7 +130,7 @@ async fn test_concurrent_transform() {
     info!("sending ClientMsg {}", msg);
     client.send(&msg).await;
 
-    let msg = client.recv().await;
+    let msg = client.recv().await?;
     assert_eq!(
         msg,
         json!({
@@ -156,7 +158,7 @@ async fn test_concurrent_transform() {
     info!("sending ClientMsg {}", msg);
     client.send(&msg).await;
 
-    let msg = client.recv().await;
+    let msg = client.recv().await?;
     assert_eq!(
         msg,
         json!({
@@ -171,8 +173,8 @@ async fn test_concurrent_transform() {
     expect_text(&filter, "henlo").await;
 
     // Connect the second client
-    let mut client2 = connect(&filter).await;
-    let msg = client2.recv().await;
+    let mut client2 = connect(&filter).await?;
+    let msg = client2.recv().await?;
     assert_eq!(msg, json!({ "Identity": 1 }));
 
     // Insert a concurrent operation before seeing the existing history
@@ -189,7 +191,7 @@ async fn test_concurrent_transform() {
     client2.send(&msg).await;
 
     // Receive the existing history
-    let msg = client2.recv().await;
+    let msg = client2.recv().await?;
     assert_eq!(
         msg,
         json!({
@@ -214,10 +216,13 @@ async fn test_concurrent_transform() {
     });
 
     // ... in the first client
-    let msg = client.recv().await;
+    let msg = client.recv().await?;
     assert_eq!(msg, transformed_op);
 
     // ... and in the second client
-    let msg = client2.recv().await;
+    let msg = client2.recv().await?;
     assert_eq!(msg, transformed_op);
+
+    expect_text(&filter, "~rust~henlo").await;
+    Ok(())
 }
