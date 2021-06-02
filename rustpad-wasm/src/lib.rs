@@ -132,6 +132,16 @@ impl OpSeq {
     pub fn target_len(&self) -> usize {
         self.0.target_len()
     }
+
+    /// Attempts to deserialize an `OpSeq` from a JSON string.
+    pub fn from_str(s: &str) -> Option<OpSeq> {
+        serde_json::from_str(s).ok()
+    }
+
+    /// Converts this object to a JSON string.
+    pub fn to_string(&self) -> String {
+        serde_json::to_string(self).expect("json serialization failure")
+    }
 }
 
 #[wasm_bindgen]

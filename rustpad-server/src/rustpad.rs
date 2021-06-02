@@ -1,38 +1,19 @@
-//! Server routes for Rustpad
+//! Asynchronous systems logic for Rustpad
 
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 use std::time::Duration;
 
 use futures::prelude::*;
 use log::{error, info};
+use operational_transform::OperationSeq;
 use parking_lot::RwLock;
+use serde::{Deserialize, Serialize};
 use tokio::{sync::Notify, time};
-use warp::{
-    filters::BoxedFilter,
-    ws::{Message, WebSocket, Ws},
-    Filter, Reply,
-};
-
-/// Construct a set of routes for the server
-pub fn routes() -> BoxedFilter<(impl Reply,)> {
-    let rustpad = Arc::new(Rustpad::default());
-    let rustpad = warp::any().map(move || Arc::clone(&rustpad));
-
-    let socket = warp::path("socket")
-        .and(warp::path::end())
-        .and(warp::ws())
-        .and(rustpad)
-        .map(|ws: Ws, rustpad: Arc<Rustpad>| {
-            ws.on_upgrade(move |socket| async move { rustpad.on_connection(socket).await })
-        });
-
-    socket.boxed()
-}
+use warp::ws::{Message, WebSocket};
 
 /// The main object for a collaborative session
 #[derive(Default)]
-struct Rustpad {
+pub struct Rustpad {
     state: RwLock<State>,
     count: AtomicU64,
     notify: Notify,
@@ -44,8 +25,29 @@ struct State {
     messages: Vec<(u64, String)>,
 }
 
+/// A message received from the client over WebSocket
+#[derive(Clone, Debug, Serialize, Deserialize)]
+enum ClientMsg {
+    Edit { revision: usize, op: OperationSeq },
+}
+
+/// A message sent to the client over WebSocket
+#[derive(Clone, Debug, Serialize, Deserialize)]
+enum ServerMsg {
+    History {
+        revision: usize,
+        ops: Vec<OperationSeq>,
+    },
+}
+
 impl Rustpad {
-    async fn on_connection(&self, mut socket: WebSocket) {
+    /// Construct a new, empty Rustpad object
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    /// Handle a connection from a WebSocket
+    pub async fn on_connection(&self, mut socket: WebSocket) {
         let id = self.count.fetch_add(1, Ordering::Relaxed);
         info!("connection! id = {}", id);
 
@@ -121,24 +123,5 @@ impl Rustpad {
         let mut state = self.state.write();
         state.messages.push((id, text));
         self.notify.notify_waiters();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_single_message() {
-        let filter = routes();
-        let mut client = warp::test::ws()
-            .path("/socket")
-            .handshake(filter)
-            .await
-            .expect("handshake");
-        client.send_text("hello world").await;
-        let msg = client.recv().await.expect("recv");
-        let msg = msg.to_str().expect("string");
-        assert_eq!(msg, "[[0,\"hello world\"]]");
     }
 }
