@@ -1,21 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { set_panic_hook } from "rustpad-wasm";
 import {
   Box,
+  Button,
   Container,
   Flex,
   Heading,
   HStack,
   Icon,
   Input,
+  InputGroup,
+  InputRightElement,
   Link,
   Select,
   Stack,
   Text,
+  useToast,
 } from "@chakra-ui/react";
 import { VscAccount, VscRemote } from "react-icons/vsc";
 import Editor from "@monaco-editor/react";
 import Rustpad from "./rustpad";
+import languages from "./languages.json";
 
 set_panic_hook();
 
@@ -25,14 +30,29 @@ const WS_URI =
   "/api/socket";
 
 function App() {
+  const toast = useToast();
+  const [language, setLanguage] = useState("plaintext");
+  const [connected, setConnected] = useState(false);
+
   useEffect(() => {
     const rustpad = new Rustpad({
       uri: WS_URI,
-      onConnected: () => console.log("connected!"),
-      onDisconnected: () => console.log("disconnected!"),
+      onConnected: () => setConnected(true),
+      onDisconnected: () => setConnected(false),
     });
     return () => rustpad.dispose();
   }, []);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(`${window.location.origin}/`);
+    toast({
+      title: "Copied!",
+      description: "Link copied to clipboard",
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
+  }
 
   return (
     <Flex direction="column" h="100vh" overflow="hidden">
@@ -48,23 +68,44 @@ function App() {
       </Box>
       <Flex flex="1 0" minH={0}>
         <Flex direction="column" bgColor="#f3f3f3" w="sm" overflowY="auto">
-          <Container maxW="full" lineHeight={1.4}>
-            <Heading mt={4} mb={1.5} size="sm">
-              Share Link
-            </Heading>
-            <Input
-              readOnly
-              size="sm"
-              variant="outline"
-              value={`${window.location.origin}/`}
-            />
+          <Container maxW="full" lineHeight={1.4} py={4}>
+            <Text fontSize="sm" fontStyle="italic" color="gray.600">
+              {connected ? "You are connected!" : "Connecting to the server..."}
+            </Text>
 
             <Heading mt={4} mb={1.5} size="sm">
               Language
             </Heading>
-            <Select size="sm">
-              <option value="text">Text</option>
+            <Select
+              size="sm"
+              bgColor="white"
+              value={language}
+              onChange={(event) => setLanguage(event.target.value)}
+            >
+              {languages.map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang}
+                </option>
+              ))}
             </Select>
+
+            <Heading mt={4} mb={1.5} size="sm">
+              Share Link
+            </Heading>
+            <InputGroup size="sm">
+              <Input
+                readOnly
+                pr="3.5rem"
+                variant="outline"
+                bgColor="white"
+                value={`${window.location.origin}/`}
+              />
+              <InputRightElement width="3.5rem">
+                <Button h="1.4rem" size="xs" onClick={handleCopy}>
+                  Copy
+                </Button>
+              </InputRightElement>
+            </InputGroup>
 
             <Heading mt={4} mb={1.5} size="sm">
               Active Users
@@ -85,8 +126,8 @@ function App() {
               editor based on the <em>operational transformation</em> algorithm.
             </Text>
             <Text fontSize="sm" mb={1.5}>
-              Share a link to this pad with others, and they can edit it from
-              their browser while seeing your changes in real time.
+              Share a link to this pad with others, and they can edit from their
+              browser while seeing your changes in real time.
             </Text>
             <Text fontSize="sm" mb={1.5}>
               Built using Rust and TypeScript. See the{" "}
@@ -103,17 +144,10 @@ function App() {
         </Flex>
         <Editor
           theme="vs"
+          language={language}
           options={{
             automaticLayout: true,
             fontSize: 14,
-            quickSuggestions: false,
-            parameterHints: {
-              enabled: false,
-            },
-            suggestOnTriggerCharacters: false,
-            acceptSuggestionOnEnter: "off",
-            tabCompletion: "off",
-            wordBasedSuggestions: false,
           }}
         />
       </Flex>
