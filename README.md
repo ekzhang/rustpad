@@ -94,3 +94,9 @@ docker run --rm -dp 3030:3030 rustpad
 
 We deploy a public instance of this image using
 [DigitalOcean App Platform](https://www.digitalocean.com/products/app-platform/).
+
+<br>
+
+<sup>
+All code is licensed under the <a href="LICENSE">MIT license</a>.
+</sup>
