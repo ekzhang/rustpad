@@ -63,11 +63,6 @@ impl From<ServerMsg> for Message {
 }
 
 impl Rustpad {
-    /// Construct a new, empty Rustpad object.
-    pub fn new() -> Self {
-        Default::default()
-    }
-
     /// Handle a connection from a WebSocket.
     pub async fn on_connection(&self, socket: WebSocket) {
         let id = self.count.fetch_add(1, Ordering::Relaxed);

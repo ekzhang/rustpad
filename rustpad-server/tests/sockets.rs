@@ -30,7 +30,7 @@ impl JsonSocket {
 /// Connect a new test client WebSocket.
 async fn connect(filter: &BoxedFilter<(impl Reply + 'static,)>) -> Result<JsonSocket> {
     let client = warp::test::ws()
-        .path("/api/socket")
+        .path("/api/socket/foobar")
         .handshake(filter.clone())
         .await?;
     Ok(JsonSocket(client))
@@ -38,7 +38,10 @@ async fn connect(filter: &BoxedFilter<(impl Reply + 'static,)>) -> Result<JsonSo
 
 /// Check the text route.
 async fn expect_text(filter: &BoxedFilter<(impl Reply + 'static,)>, text: &str) {
-    let resp = warp::test::request().path("/api/text").reply(filter).await;
+    let resp = warp::test::request()
+        .path("/api/text/foobar")
+        .reply(filter)
+        .await;
     assert_eq!(resp.status(), 200);
     assert_eq!(resp.body(), text);
 }

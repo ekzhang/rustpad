@@ -5,6 +5,7 @@
 
 use std::sync::Arc;
 
+use dashmap::DashMap;
 use rustpad::Rustpad;
 use warp::{filters::BoxedFilter, ws::Ws, Filter, Reply};
 
@@ -24,21 +25,34 @@ fn frontend() -> BoxedFilter<(impl Reply,)> {
 
 /// Construct backend routes, including WebSocket handlers.
 fn backend() -> BoxedFilter<(impl Reply,)> {
-    let rustpad = Arc::new(Rustpad::new());
-    let rustpad = warp::any().map(move || Arc::clone(&rustpad));
+    let rustpad_map: Arc<DashMap<String, Arc<Rustpad>>> = Default::default();
+    let rustpad_map = warp::any().map(move || Arc::clone(&rustpad_map));
 
     let socket = warp::path("socket")
+        .and(warp::path::param())
         .and(warp::path::end())
         .and(warp::ws())
-        .and(rustpad.clone())
-        .map(|ws: Ws, rustpad: Arc<Rustpad>| {
-            ws.on_upgrade(move |socket| async move { rustpad.on_connection(socket).await })
-        });
+        .and(rustpad_map.clone())
+        .map(
+            |id: String, ws: Ws, rustpad_map: Arc<DashMap<String, Arc<Rustpad>>>| {
+                let rustpad = rustpad_map.entry(id).or_default();
+                let rustpad = Arc::clone(rustpad.value());
+                ws.on_upgrade(move |socket| async move { rustpad.on_connection(socket).await })
+            },
+        );
 
     let text = warp::path("text")
+        .and(warp::path::param())
         .and(warp::path::end())
-        .and(rustpad.clone())
-        .map(|rustpad: Arc<Rustpad>| rustpad.text());
+        .and(rustpad_map.clone())
+        .map(
+            |id: String, rustpad_map: Arc<DashMap<String, Arc<Rustpad>>>| {
+                rustpad_map
+                    .get(&id)
+                    .map(|rustpad| rustpad.text())
+                    .unwrap_or_default()
+            },
+        );
 
     socket.or(text).boxed()
 }

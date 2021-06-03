@@ -25,10 +25,11 @@ import languages from "./languages.json";
 
 set_panic_hook();
 
-const WS_URI =
+const id = window.location.hash.slice(1);
+const wsUri =
   (window.location.origin.startsWith("https") ? "wss://" : "ws://") +
   window.location.host +
-  "/api/socket";
+  `/api/socket/${id}`;
 
 function App() {
   const toast = useToast();
@@ -42,7 +43,7 @@ function App() {
       model.setValue("");
       model.setEOL(0); // LF
       const rustpad = new Rustpad({
-        uri: WS_URI,
+        uri: wsUri,
         editor,
         onConnected: () => setConnected(true),
         onDisconnected: () => setConnected(false),
@@ -52,7 +53,7 @@ function App() {
   }, [editor]);
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(`${window.location.origin}/`);
+    await navigator.clipboard.writeText(`${window.location.origin}/#${id}`);
     toast({
       title: "Copied!",
       description: "Link copied to clipboard",
@@ -114,7 +115,7 @@ function App() {
                 pr="3.5rem"
                 variant="outline"
                 bgColor="white"
-                value={`${window.location.origin}/`}
+                value={`${window.location.origin}/#${id}`}
               />
               <InputRightElement width="3.5rem">
                 <Button h="1.4rem" size="xs" onClick={handleCopy}>
