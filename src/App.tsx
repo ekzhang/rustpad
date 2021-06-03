@@ -161,13 +161,12 @@ function App() {
           />
         </Box>
       </Flex>
-      <Flex h="22px" bgColor="#0071c3">
+      <Flex h="22px" bgColor="#0071c3" color="white">
         <Flex
           h="100%"
           bgColor="#09835c"
           pl={2.5}
           pr={4}
-          color="#eeeeef"
           fontSize="sm"
           align="center"
         >
