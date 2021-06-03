@@ -97,13 +97,13 @@ class Rustpad {
       }
       for (let i = this.revision - start; i < operations.length; i++) {
         let { id, operation } = operations[i];
+        this.revision++;
         if (id === this.me) {
           this.serverAck();
         } else {
           operation = OpSeq.from_str(JSON.stringify(operation));
           this.applyServer(operation);
         }
-        this.revision++;
       }
     }
   }
