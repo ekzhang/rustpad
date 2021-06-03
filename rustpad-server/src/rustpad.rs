@@ -156,6 +156,13 @@ impl Rustpad {
     }
 
     fn apply_edit(&self, id: u64, revision: usize, mut operation: OperationSeq) -> Result<()> {
+        info!(
+            "edit: id = {}, revision = {}, base_len = {}, target_len = {}",
+            id,
+            revision,
+            operation.base_len(),
+            operation.target_len()
+        );
         let state = self.state.upgradable_read();
         let len = state.operations.len();
         if revision > len {

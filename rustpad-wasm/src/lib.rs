@@ -67,8 +67,8 @@ impl OpSeq {
     }
 
     /// Deletes `n` characters at the current cursor position.
-    pub fn delete(&mut self, n: u64) {
-        self.0.delete(n)
+    pub fn delete(&mut self, n: u32) {
+        self.0.delete(n as u64)
     }
 
     /// Inserts a `s` at the current cursor position.
@@ -77,8 +77,8 @@ impl OpSeq {
     }
 
     /// Moves the cursor `n` characters forwards.
-    pub fn retain(&mut self, n: u64) {
-        self.0.retain(n)
+    pub fn retain(&mut self, n: u32) {
+        self.0.retain(n as u64)
     }
 
     /// Transforms two operations A and B that happened concurrently and produces

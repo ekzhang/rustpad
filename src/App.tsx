@@ -19,6 +19,7 @@ import {
 } from "@chakra-ui/react";
 import { VscAccount, VscCircleFilled, VscRemote } from "react-icons/vsc";
 import Editor from "@monaco-editor/react";
+import { editor } from "monaco-editor/esm/vs/editor/editor.api";
 import Rustpad from "./rustpad";
 import languages from "./languages.json";
 
@@ -33,15 +34,22 @@ function App() {
   const toast = useToast();
   const [language, setLanguage] = useState("plaintext");
   const [connected, setConnected] = useState(false);
+  const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
 
   useEffect(() => {
-    const rustpad = new Rustpad({
-      uri: WS_URI,
-      onConnected: () => setConnected(true),
-      onDisconnected: () => setConnected(false),
-    });
-    return () => rustpad.dispose();
-  }, []);
+    if (editor) {
+      const model = editor.getModel()!;
+      model.setValue("");
+      model.setEOL(0); // LF
+      const rustpad = new Rustpad({
+        uri: WS_URI,
+        editor,
+        onConnected: () => setConnected(true),
+        onDisconnected: () => setConnected(false),
+      });
+      return () => rustpad.dispose();
+    }
+  }, [editor]);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(`${window.location.origin}/`);
@@ -158,6 +166,7 @@ function App() {
               automaticLayout: true,
               fontSize: 14,
             }}
+            onMount={(editor) => setEditor(editor)}
           />
         </Box>
       </Flex>
