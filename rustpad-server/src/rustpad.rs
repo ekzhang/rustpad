@@ -1,4 +1,4 @@
-//! Asynchronous systems logic for Rustpad.
+//! Eventually consistent server-side logic for Rustpad.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
@@ -13,7 +13,7 @@ use tokio::sync::{broadcast, Notify};
 use tokio::time;
 use warp::ws::{Message, WebSocket};
 
-/// The main object for a collaborative session.
+/// The main object representing a collaborative session.
 pub struct Rustpad {
     /// State modified by critical sections of the code.
     state: RwLock<State>,
@@ -74,7 +74,7 @@ impl From<ServerMsg> for Message {
 
 impl Default for Rustpad {
     fn default() -> Self {
-        let (tx, _) = broadcast::channel(1);
+        let (tx, _) = broadcast::channel(16);
         Self {
             state: Default::default(),
             count: Default::default(),

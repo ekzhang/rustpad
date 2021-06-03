@@ -27,6 +27,7 @@ import {
 } from "react-icons/vsc";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
+import raw from "raw.macro";
 import Rustpad from "./rustpad";
 import languages from "./languages.json";
 
@@ -112,6 +113,26 @@ function App() {
       duration: 2000,
       isClosable: true,
     });
+  }
+
+  function handleLoadSample() {
+    if (editor) {
+      const model = editor.getModel()!;
+      model.pushEditOperations(
+        editor.getSelections(),
+        [
+          {
+            range: model.getFullModelRange(),
+            text: raw("../rustpad-server/src/rustpad.rs"),
+          },
+        ],
+        () => null
+      );
+      editor.setPosition({ column: 0, lineNumber: 0 });
+      if (language !== "rust") {
+        handleChangeLanguage("rust");
+      }
+    }
   }
 
   return (
@@ -211,6 +232,7 @@ function App() {
               Built using Rust and TypeScript. See the{" "}
               <Link
                 color="blue.600"
+                fontWeight="semibold"
                 href="https://github.com/ekzhang/rustpad"
                 isExternal
               >
@@ -218,6 +240,16 @@ function App() {
               </Link>{" "}
               for details.
             </Text>
+
+            <Button
+              size="sm"
+              colorScheme="purple"
+              variant="outline"
+              mt={2}
+              onClick={handleLoadSample}
+            >
+              Read the code
+            </Button>
           </Container>
         </Flex>
         <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
