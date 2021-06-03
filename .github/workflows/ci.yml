@@ -22,12 +22,24 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Login to GCR
+        run: gcloud auth configure-docker
+
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: ekzhang/rustpad:latest
+          tags: |
+            ekzhang/rustpad:latest
+            gcr.io/rustpad/rustpad:latest
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

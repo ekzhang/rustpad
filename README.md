@@ -73,9 +73,13 @@ wasm-pack test rustpad-wasm --chrome --headless
 
 ## Deployment
 
-Rustpad is distributed as a single ~10 MB Docker image, which is built from the
-`Dockerfile` in this repository. GitHub Actions automatically builds a new image
-on each push to the `main` branch.
+Rustpad is distributed as a single ~10 MB Docker image, which is built
+automatically from the `Dockerfile` in this repository. You can pull the latest
+version of the image with
+
+```
+docker pull ekzhang/rustpad
+```
 
 We deploy a public instance of this image using
-[DigitalOcean App Platform](https://www.digitalocean.com/products/app-platform/).
+[Google Cloud Run](https://cloud.google.com/run).
