@@ -25,9 +25,9 @@ editor that powers VS Code.
 
 Architecturally, client-side code communicates via WebSocket with a central
 server that stores in-memory data structures. This makes the editor very fast,
-allows us to avoid provisioning a database, and makes testing our code much
-easier. The tradeoff is that user documents are transient and lost between
-server restarts.
+allows us to avoid provisioning a database, and makes testing much easier. The
+tradeoff is that documents are transient and lost between server restarts, or
+after 24 hours of inactivity.
 
 ## Development setup
 

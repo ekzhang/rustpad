@@ -1,59 +1,25 @@
+//! Basic tests for real-time collaboration.
+
 use std::time::Duration;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
+use common::*;
 use log::info;
 use operational_transform::OperationSeq;
 use rustpad_server::server;
-use serde_json::{json, Value};
+use serde_json::json;
 use tokio::time;
-use warp::{filters::BoxedFilter, test::WsClient, Reply};
 
-/// A test WebSocket client that sends and receives JSON messages.
-struct JsonSocket(WsClient);
-
-impl JsonSocket {
-    async fn send(&mut self, msg: &Value) {
-        self.0.send_text(msg.to_string()).await
-    }
-
-    async fn recv(&mut self) -> Result<Value> {
-        let msg = self.0.recv().await?;
-        let msg = msg.to_str().map_err(|_| anyhow!("non-string message"))?;
-        Ok(serde_json::from_str(&msg)?)
-    }
-
-    async fn recv_closed(&mut self) -> Result<()> {
-        self.0.recv_closed().await.map_err(|e| e.into())
-    }
-}
-
-/// Connect a new test client WebSocket.
-async fn connect(filter: &BoxedFilter<(impl Reply + 'static,)>) -> Result<JsonSocket> {
-    let client = warp::test::ws()
-        .path("/api/socket/foobar")
-        .handshake(filter.clone())
-        .await?;
-    Ok(JsonSocket(client))
-}
-
-/// Check the text route.
-async fn expect_text(filter: &BoxedFilter<(impl Reply + 'static,)>, text: &str) {
-    let resp = warp::test::request()
-        .path("/api/text/foobar")
-        .reply(filter)
-        .await;
-    assert_eq!(resp.status(), 200);
-    assert_eq!(resp.body(), text);
-}
+pub mod common;
 
 #[tokio::test]
 async fn test_single_operation() -> Result<()> {
     pretty_env_logger::try_init().ok();
     let filter = server();
 
-    expect_text(&filter, "").await;
+    expect_text(&filter, "foobar", "").await;
 
-    let mut client = connect(&filter).await?;
+    let mut client = connect(&filter, "foobar").await?;
     let msg = client.recv().await?;
     assert_eq!(msg, json!({ "Identity": 0 }));
 
@@ -81,7 +47,7 @@ async fn test_single_operation() -> Result<()> {
         })
     );
 
-    expect_text(&filter, "hello").await;
+    expect_text(&filter, "foobar", "hello").await;
     Ok(())
 }
 
@@ -90,9 +56,9 @@ async fn test_invalid_operation() -> Result<()> {
     pretty_env_logger::try_init().ok();
     let filter = server();
 
-    expect_text(&filter, "").await;
+    expect_text(&filter, "foobar", "").await;
 
-    let mut client = connect(&filter).await?;
+    let mut client = connect(&filter, "foobar").await?;
     let msg = client.recv().await?;
     assert_eq!(msg, json!({ "Identity": 0 }));
 
@@ -117,7 +83,7 @@ async fn test_concurrent_transform() -> Result<()> {
     let filter = server();
 
     // Connect the first client
-    let mut client = connect(&filter).await?;
+    let mut client = connect(&filter, "foobar").await?;
     let msg = client.recv().await?;
     assert_eq!(msg, json!({ "Identity": 0 }));
 
@@ -173,10 +139,10 @@ async fn test_concurrent_transform() -> Result<()> {
             }
         })
     );
-    expect_text(&filter, "henlo").await;
+    expect_text(&filter, "foobar", "henlo").await;
 
     // Connect the second client
-    let mut client2 = connect(&filter).await?;
+    let mut client2 = connect(&filter, "foobar").await?;
     let msg = client2.recv().await?;
     assert_eq!(msg, json!({ "Identity": 1 }));
 
@@ -226,6 +192,6 @@ async fn test_concurrent_transform() -> Result<()> {
     let msg = client2.recv().await?;
     assert_eq!(msg, transformed_op);
 
-    expect_text(&filter, "~rust~henlo").await;
+    expect_text(&filter, "foobar", "~rust~henlo").await;
     Ok(())
 }
