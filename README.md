@@ -73,12 +73,15 @@ wasm-pack test rustpad-wasm --chrome --headless
 
 ## Deployment
 
-Rustpad is continuously deployed as a single ~10 MB Docker image, which is built
-automatically from the `Dockerfile` in this repository. We use
-[Google Cloud Build](https://cloud.google.com/build) and
-[Google Cloud Run](https://cloud.google.com/run).
+Rustpad is distributed as a single ~10 MB Docker image, which is built
+automatically from the `Dockerfile` in this repository. You can pull the latest
+version of this image from Docker Hub.
 
-To build and run a Docker image, use the following commands, then open
+```
+docker pull ekzhang/rustpad
+```
+
+To manually build and run a Docker image, use the following commands, then open
 `http://localhost:3030` in your browser.
 
 ```
@@ -88,3 +91,6 @@ docker build -t rustpad .
 ```
 docker run --rm -dp 3030:3030 rustpad
 ```
+
+We deploy a public instance of this image using
+[DigitalOcean App Platform](https://www.digitalocean.com/products/app-platform/).
