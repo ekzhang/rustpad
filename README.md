@@ -1,24 +1,21 @@
 # Rustpad
 
 **Rustpad** is an _efficient_ and _minimal_ open-source collaborative text
-editor based on the operational transformation (OT) algorithm. Similar to Google
-Docs, Rustpad allows users to collaborate in real time while writing code in
-their browser.
+editor based on the operational transformation algorithm. Rustpad allows users
+to collaborate in real time while writing code in their browser.
 
 <p align="center">
 <a href="https://rustpad.io/">
-<img src="https://images.placeholders.dev/?width=600&height=300" width="600"><br>
+<img src="https://i.imgur.com/1cg3xUs.png" width="600"><br>
 <strong>Rustpad.io</strong>
 </a>
 </p>
 
-The server is written in Rust using [Warp](https://github.com/seanmonstar/warp)
-and the
+The server is written in Rust using the
+[warp](https://github.com/seanmonstar/warp) web server framework and the
 [operational-transform](https://github.com/spebern/operational-transform-rs)
-library, which is a port of
-[ot.js](https://github.com/Operational-Transformation/ot.js). We compile some of
-this logic to WebAssembly with
-[wasm-bindgen](https://github.com/rustwasm/wasm-bindgen) for use in the browser.
+library. We use [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen) to
+compile the text operation logic to WebAssembly code that runs in the browser.
 The frontend is written in TypeScript using [React](https://reactjs.org/) and
 interfaces with [Monaco](https://github.com/microsoft/monaco-editor), the text
 editor that powers VS Code.
@@ -39,13 +36,13 @@ wasm-pack build rustpad-wasm
 ```
 
 When that is complete, you can install dependencies for the frontend React
-application with:
+application:
 
 ```
 npm install
 ```
 
-Finally, compile and run the backend web server:
+Next, compile and run the backend web server:
 
 ```
 cargo run
@@ -63,9 +60,8 @@ reloading on changes.
 
 ## Testing
 
-To run unit tests and integration tests for the server, use the standard
-`cargo test` command. For the WebAssembly component, you can run tests in a
-headless browser with
+To run integration tests for the server, use the standard `cargo test` command.
+For the WebAssembly component, you can run tests in a headless browser with
 
 ```
 wasm-pack test rustpad-wasm --chrome --headless
@@ -73,7 +69,7 @@ wasm-pack test rustpad-wasm --chrome --headless
 
 ## Deployment
 
-Rustpad is distributed as a single ~10 MB Docker image, which is built
+Rustpad is distributed as a single 12 MB Docker image, which is built
 automatically from the `Dockerfile` in this repository. You can pull the latest
 version of this image from Docker Hub.
 
@@ -81,15 +77,12 @@ version of this image from Docker Hub.
 docker pull ekzhang/rustpad
 ```
 
-To manually build and run a Docker image, use the following commands, then open
-`http://localhost:3030` in your browser.
+(You can also manually build this image with `docker build -t rustpad .` in the
+project root directory.) To run locally, execute the following command, then
+open `http://localhost:3030` in your browser.
 
 ```
-docker build -t rustpad .
-```
-
-```
-docker run --rm -dp 3030:3030 rustpad
+docker run --rm -dp 3030:3030 ekzhang/rustpad
 ```
 
 We deploy a public instance of this image using
