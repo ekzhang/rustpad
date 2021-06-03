@@ -17,7 +17,14 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
-import { VscAccount, VscCircleFilled, VscRemote } from "react-icons/vsc";
+import {
+  VscAccount,
+  VscChevronRight,
+  VscCircleFilled,
+  VscFolderOpened,
+  VscGist,
+  VscRemote,
+} from "react-icons/vsc";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
 import Rustpad from "./rustpad";
@@ -183,17 +190,34 @@ function App() {
             </Text>
           </Container>
         </Flex>
-        <Box flex={1} minW={0} h="100%">
-          <Editor
-            theme="vs"
-            language={language}
-            options={{
-              automaticLayout: true,
-              fontSize: 14,
-            }}
-            onMount={(editor) => setEditor(editor)}
-          />
-        </Box>
+        <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
+          <HStack
+            h={6}
+            spacing={1}
+            color="gray.500"
+            fontWeight="medium"
+            fontSize="13px"
+            px={3.5}
+            flexShrink={0}
+          >
+            <Icon as={VscFolderOpened} fontSize="md" color="blue.600" />
+            <Text>documents</Text>
+            <Icon as={VscChevronRight} fontSize="md" />
+            <Icon as={VscGist} fontSize="md" color="purple.600" />
+            <Text>{id}</Text>
+          </HStack>
+          <Box flex={1} minH={0}>
+            <Editor
+              theme="vs"
+              language={language}
+              options={{
+                automaticLayout: true,
+                fontSize: 13,
+              }}
+              onMount={(editor) => setEditor(editor)}
+            />
+          </Box>
+        </Flex>
       </Flex>
       <Flex h="22px" bgColor="#0071c3" color="white">
         <Flex
