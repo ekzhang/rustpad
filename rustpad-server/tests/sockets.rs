@@ -195,3 +195,36 @@ async fn test_concurrent_transform() -> Result<()> {
     expect_text(&filter, "foobar", "~rust~henlo").await;
     Ok(())
 }
+
+#[tokio::test]
+async fn test_set_language() -> Result<()> {
+    pretty_env_logger::try_init().ok();
+    let filter = server();
+
+    let mut client = connect(&filter, "foobar").await?;
+    let msg = client.recv().await?;
+    assert_eq!(msg, json!({ "Identity": 0 }));
+
+    let msg = json!({ "SetLanguage": "javascript" });
+    client.send(&msg).await;
+
+    let msg = client.recv().await?;
+    assert_eq!(msg, json!({ "Language": "javascript" }));
+
+    let mut client2 = connect(&filter, "foobar").await?;
+    let msg = client2.recv().await?;
+    assert_eq!(msg, json!({ "Identity": 1 }));
+    let msg = client2.recv().await?;
+    assert_eq!(msg, json!({ "Language": "javascript" }));
+
+    let msg = json!({ "SetLanguage": "python" });
+    client2.send(&msg).await;
+
+    let msg = client.recv().await?;
+    assert_eq!(msg, json!({ "Language": "python" }));
+    let msg = client2.recv().await?;
+    assert_eq!(msg, json!({ "Language": "python" }));
+
+    expect_text(&filter, "foobar", "").await;
+    Ok(())
+}

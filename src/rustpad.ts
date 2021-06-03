@@ -8,6 +8,7 @@ export type RustpadOptions = {
   readonly onConnected?: () => unknown;
   readonly onDisconnected?: () => unknown;
   readonly onDesynchronized?: () => unknown;
+  readonly onChangeLanguage?: (language: string) => unknown;
   readonly reconnectInterval?: number;
 };
 
@@ -63,6 +64,12 @@ class Rustpad {
     this.onChangeHandle.dispose();
     window.removeEventListener("beforeunload", this.beforeUnload);
     this.ws?.close();
+  }
+
+  /** Try to set the language of the editor, if connected. */
+  setLanguage(language: string): boolean {
+    this.ws?.send(`{"SetLanguage":${JSON.stringify(language)}}`);
+    return this.ws !== undefined;
   }
 
   /**
@@ -129,6 +136,8 @@ class Rustpad {
           this.applyServer(operation);
         }
       }
+    } else if (msg.Language !== undefined) {
+      this.options.onChangeLanguage?.(msg.Language);
     }
   }
 
@@ -271,6 +280,7 @@ type ServerMsg = {
     start: number;
     operations: UserOperation[];
   };
+  Language?: string;
 };
 
 export default Rustpad;

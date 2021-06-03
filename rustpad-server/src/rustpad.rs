@@ -9,15 +9,20 @@ use log::{info, warn};
 use operational_transform::OperationSeq;
 use parking_lot::{RwLock, RwLockUpgradableReadGuard};
 use serde::{Deserialize, Serialize};
-use tokio::{sync::Notify, time};
+use tokio::sync::{broadcast, Notify};
+use tokio::time;
 use warp::ws::{Message, WebSocket};
 
 /// The main object for a collaborative session.
-#[derive(Default)]
 pub struct Rustpad {
+    /// State modified by critical sections of the code.
     state: RwLock<State>,
+    /// Incremented to obtain unique user IDs.
     count: AtomicU64,
+    /// Used to notify clients of new text operations.
     notify: Notify,
+    /// Used to inform all clients of metadata updates.
+    update: broadcast::Sender<ServerMsg>,
 }
 
 /// Shared state involving multiple users, protected by a lock.
@@ -25,6 +30,7 @@ pub struct Rustpad {
 struct State {
     operations: Vec<UserOperation>,
     text: String,
+    language: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -41,6 +47,8 @@ enum ClientMsg {
         revision: usize,
         operation: OperationSeq,
     },
+    /// Set the language of the editor.
+    SetLanguage(String),
 }
 
 /// A message sent to the client over WebSocket.
@@ -53,12 +61,26 @@ enum ServerMsg {
         start: usize,
         operations: Vec<UserOperation>,
     },
+    /// Broadcasts the current language, last writer wins.
+    Language(String),
 }
 
 impl From<ServerMsg> for Message {
     fn from(msg: ServerMsg) -> Self {
         let serialized = serde_json::to_string(&msg).expect("failed serialize");
         Message::text(serialized)
+    }
+}
+
+impl Default for Rustpad {
+    fn default() -> Self {
+        let (tx, _) = broadcast::channel(1);
+        Self {
+            state: Default::default(),
+            count: Default::default(),
+            notify: Default::default(),
+            update: tx,
+        }
     }
 }
 
@@ -86,8 +108,9 @@ impl Rustpad {
     }
 
     async fn handle_connection(&self, id: u64, mut socket: WebSocket) -> Result<()> {
-        socket.send(ServerMsg::Identity(id).into()).await?;
+        let mut update_rx = self.update.subscribe();
 
+        self.send_initial(id, &mut socket).await?;
         let mut revision: usize = 0;
 
         loop {
@@ -100,6 +123,9 @@ impl Rustpad {
             tokio::select! {
                 _ = &mut sleep => {}
                 _ = self.notify.notified() => {}
+                update = update_rx.recv() => {
+                    socket.send(update?.into()).await?;
+                }
                 result = socket.next() => {
                     match result {
                         None => break,
@@ -111,6 +137,21 @@ impl Rustpad {
             }
         }
 
+        Ok(())
+    }
+
+    async fn send_initial(&self, id: u64, socket: &mut WebSocket) -> Result<()> {
+        socket.send(ServerMsg::Identity(id).into()).await?;
+        let mut messages = Vec::new();
+        {
+            let state = self.state.read();
+            if let Some(language) = &state.language {
+                messages.push(ServerMsg::Language(language.clone()));
+            }
+        };
+        for msg in messages {
+            socket.send(msg.into()).await?;
+        }
         Ok(())
     }
 
@@ -145,6 +186,10 @@ impl Rustpad {
                 self.apply_edit(id, revision, operation)
                     .context("invalid edit operation")?;
                 self.notify.notify_waiters();
+            }
+            ClientMsg::SetLanguage(language) => {
+                self.state.write().language = Some(language.clone());
+                self.update.send(ServerMsg::Language(language)).ok();
             }
         }
         Ok(())

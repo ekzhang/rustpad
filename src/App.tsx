@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { set_panic_hook } from "rustpad-wasm";
 import {
   Box,
@@ -48,13 +48,14 @@ function App() {
   const [connection, setConnection] =
     useState<"connected" | "disconnected" | "desynchronized">("disconnected");
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
+  const rustpad = useRef<Rustpad>();
 
   useEffect(() => {
     if (editor) {
       const model = editor.getModel()!;
       model.setValue("");
       model.setEOL(0); // LF
-      const rustpad = new Rustpad({
+      rustpad.current = new Rustpad({
         uri: wsUri,
         editor,
         onConnected: () => setConnection("connected"),
@@ -68,10 +69,39 @@ function App() {
             duration: null,
           });
         },
+        onChangeLanguage: (language) => {
+          if (languages.includes(language)) {
+            setLanguage(language);
+          }
+        },
       });
-      return () => rustpad.dispose();
+      return () => {
+        rustpad.current?.dispose();
+        rustpad.current = undefined;
+      };
     }
   }, [editor, toast]);
+
+  function handleChangeLanguage(language: string) {
+    setLanguage(language);
+    if (rustpad.current?.setLanguage(language)) {
+      toast({
+        title: "Language updated",
+        description: (
+          <>
+            All users are now editing in{" "}
+            <Text as="span" fontWeight="semibold">
+              {language}
+            </Text>
+            .
+          </>
+        ),
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+      });
+    }
+  }
 
   async function handleCopy() {
     await navigator.clipboard.writeText(`${window.location.origin}/#${id}`);
@@ -128,7 +158,7 @@ function App() {
               size="sm"
               bgColor="white"
               value={language}
-              onChange={(event) => setLanguage(event.target.value)}
+              onChange={(event) => handleChangeLanguage(event.target.value)}
             >
               {languages.map((lang) => (
                 <option key={lang} value={lang}>
