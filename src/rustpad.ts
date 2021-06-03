@@ -7,6 +7,7 @@ export type RustpadOptions = {
   readonly editor: editor.IStandaloneCodeEditor;
   readonly onConnected?: () => unknown;
   readonly onDisconnected?: () => unknown;
+  readonly onDesynchronized?: () => unknown;
   readonly reconnectInterval?: number;
 };
 
@@ -14,9 +15,11 @@ export type RustpadOptions = {
 class Rustpad {
   private ws?: WebSocket;
   private connecting?: boolean;
+  private recentFailures: number = 0;
   private readonly model: editor.ITextModel;
   private readonly onChangeHandle: any;
-  private readonly intervalId: number;
+  private readonly tryConnectId: number;
+  private readonly resetFailuresId: number;
 
   // Client-server state
   private me: number = -1;
@@ -34,15 +37,20 @@ class Rustpad {
       this.onChange(e)
     );
     this.tryConnect();
-    this.intervalId = window.setInterval(
+    const interval = options.reconnectInterval ?? 1000
+    this.tryConnectId = window.setInterval(
       () => this.tryConnect(),
-      options.reconnectInterval ?? 1000
+      interval
     );
+    this.resetFailuresId = window.setInterval(() =>
+      this.recentFailures = 0
+    , 15 * interval);
   }
 
   /** Destroy this Rustpad instance and close any sockets. */
   dispose() {
-    window.clearInterval(this.intervalId);
+    window.clearInterval(this.tryConnectId);
+    window.clearInterval(this.resetFailuresId);
     this.onChangeHandle.dispose();
     this.ws?.close();
   }
@@ -74,6 +82,12 @@ class Rustpad {
       if (this.ws) {
         this.ws = undefined;
         this.options.onDisconnected?.();
+        if (++this.recentFailures >= 5) {
+          // If we disconnect 5 times within 15 reconnection intervals, then the
+          // client is likely desynchronized and needs to refresh.
+          this.dispose();
+          this.options.onDesynchronized?.();
+        }
       } else {
         this.connecting = false;
       }

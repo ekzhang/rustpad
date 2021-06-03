@@ -34,7 +34,8 @@ const wsUri =
 function App() {
   const toast = useToast();
   const [language, setLanguage] = useState("plaintext");
-  const [connected, setConnected] = useState(false);
+  const [connection, setConnection] =
+    useState<"connected" | "disconnected" | "desynchronized">("disconnected");
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
 
   useEffect(() => {
@@ -45,12 +46,21 @@ function App() {
       const rustpad = new Rustpad({
         uri: wsUri,
         editor,
-        onConnected: () => setConnected(true),
-        onDisconnected: () => setConnected(false),
+        onConnected: () => setConnection("connected"),
+        onDisconnected: () => setConnection("disconnected"),
+        onDesynchronized: () => {
+          setConnection("desynchronized");
+          toast({
+            title: "Desynchronized with server",
+            description: "Please save your work and refresh the page.",
+            status: "error",
+            duration: null,
+          });
+        },
       });
       return () => rustpad.dispose();
     }
-  }, [editor]);
+  }, [editor, toast]);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(`${window.location.origin}/#${id}`);
@@ -81,12 +91,22 @@ function App() {
             <HStack spacing={1}>
               <Icon
                 as={VscCircleFilled}
-                color={connected ? "green.500" : "orange.500"}
+                color={
+                  {
+                    connected: "green.500",
+                    disconnected: "orange.500",
+                    desynchronized: "red.500",
+                  }[connection]
+                }
               />
               <Text fontSize="sm" fontStyle="italic" color="gray.600">
-                {connected
-                  ? "You are connected!"
-                  : "Connecting to the server..."}
+                {
+                  {
+                    connected: "You are connected!",
+                    disconnected: "Connecting to the server...",
+                    desynchronized: "Disconnected, please refresh.",
+                  }[connection]
+                }
               </Text>
             </HStack>
 
