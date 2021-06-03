@@ -18,6 +18,7 @@ class Rustpad {
   private recentFailures: number = 0;
   private readonly model: editor.ITextModel;
   private readonly onChangeHandle: any;
+  private readonly beforeUnload: (event: BeforeUnloadEvent) => void;
   private readonly tryConnectId: number;
   private readonly resetFailuresId: number;
 
@@ -36,15 +37,23 @@ class Rustpad {
     this.onChangeHandle = options.editor.onDidChangeModelContent((e) =>
       this.onChange(e)
     );
+    this.beforeUnload = (event: BeforeUnloadEvent) => {
+      if (this.outstanding) {
+        event.preventDefault();
+        event.returnValue = "";
+      } else {
+        delete event.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", this.beforeUnload);
+
+    const interval = options.reconnectInterval ?? 1000;
     this.tryConnect();
-    const interval = options.reconnectInterval ?? 1000
-    this.tryConnectId = window.setInterval(
-      () => this.tryConnect(),
-      interval
+    this.tryConnectId = window.setInterval(() => this.tryConnect(), interval);
+    this.resetFailuresId = window.setInterval(
+      () => (this.recentFailures = 0),
+      15 * interval
     );
-    this.resetFailuresId = window.setInterval(() =>
-      this.recentFailures = 0
-    , 15 * interval);
   }
 
   /** Destroy this Rustpad instance and close any sockets. */
@@ -52,6 +61,7 @@ class Rustpad {
     window.clearInterval(this.tryConnectId);
     window.clearInterval(this.resetFailuresId);
     this.onChangeHandle.dispose();
+    window.removeEventListener("beforeunload", this.beforeUnload);
     this.ws?.close();
   }
 

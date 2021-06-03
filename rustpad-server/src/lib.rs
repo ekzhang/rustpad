@@ -62,7 +62,7 @@ fn backend() -> BoxedFilter<(impl Reply,)> {
                 let value = entry.value_mut();
                 value.last_accessed = Instant::now();
                 let rustpad = Arc::clone(&value.rustpad);
-                ws.on_upgrade(move |socket| async move { rustpad.on_connection(socket).await })
+                ws.on_upgrade(|socket| async move { rustpad.on_connection(socket).await })
             },
         );
 
