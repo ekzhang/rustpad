@@ -163,6 +163,7 @@ class Rustpad {
       if (typeof op === "string") {
         // Insert
         const pos = this.model.getPositionAt(index);
+        index += op.length;
         this.model.pushEditOperations(
           this.options.editor.getSelections(),
           [
