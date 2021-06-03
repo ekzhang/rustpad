@@ -17,6 +17,8 @@ COPY package.json package-lock.json ./
 COPY --from=wasm /home/rust/src/rustpad-wasm/pkg rustpad-wasm/pkg
 RUN npm ci
 COPY . .
+ARG GITHUB_SHA
+ENV REACT_APP_SHA=${GITHUB_SHA}
 RUN npm run build
 
 FROM scratch

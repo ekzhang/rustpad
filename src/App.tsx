@@ -25,6 +25,10 @@ import languages from "./languages.json";
 
 set_panic_hook();
 
+const version = process.env.REACT_APP_SHA
+  ? process.env.REACT_APP_SHA.slice(0, 7)
+  : "development";
+
 const id = window.location.hash.slice(1);
 const wsUri =
   (window.location.origin.startsWith("https") ? "wss://" : "ws://") +
@@ -201,7 +205,7 @@ function App() {
           align="center"
         >
           <Icon as={VscRemote} mb={-0.5} mr={1} />
-          <Text fontSize="xs">Rustpad v0.1.0</Text>
+          <Text fontSize="xs">Rustpad ({version})</Text>
         </Flex>
       </Flex>
     </Flex>
