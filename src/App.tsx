@@ -58,9 +58,9 @@ function App() {
   const [language, setLanguage] = useState("plaintext");
   const [connection, setConnection] =
     useState<"connected" | "disconnected" | "desynchronized">("disconnected");
-  const [users, setUsers] = useStorage<Record<number, UserInfo>>("users", {});
+  const [users, setUsers] = useState<Record<number, UserInfo>>({});
   const [name, setName] = useStorage("name", generateName);
-  const [hue, setHue] = useState(generateHue);
+  const [hue, setHue] = useStorage("hue", generateHue);
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
   const rustpad = useRef<Rustpad>();
 
