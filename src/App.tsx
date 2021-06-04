@@ -18,18 +18,20 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import {
-  VscAccount,
   VscChevronRight,
   VscCircleFilled,
   VscFolderOpened,
   VscGist,
   VscRemote,
 } from "react-icons/vsc";
+import useStorage from "use-local-storage-state";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
 import raw from "raw.macro";
-import Rustpad from "./rustpad";
+import Rustpad, { UserInfo } from "./rustpad";
 import languages from "./languages.json";
+import animals from "./animals.json";
+import User from "./User";
 
 set_panic_hook();
 
@@ -43,11 +45,22 @@ const wsUri =
   window.location.host +
   `/api/socket/${id}`;
 
+function generateName() {
+  return "Anonymous " + animals[Math.floor(Math.random() * animals.length)];
+}
+
+function generateHue() {
+  return Math.floor(Math.random() * 360);
+}
+
 function App() {
   const toast = useToast();
   const [language, setLanguage] = useState("plaintext");
   const [connection, setConnection] =
     useState<"connected" | "disconnected" | "desynchronized">("disconnected");
+  const [users, setUsers] = useStorage<Record<number, UserInfo>>("users", {});
+  const [name, setName] = useStorage("name", generateName);
+  const [hue, setHue] = useState(generateHue);
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
   const rustpad = useRef<Rustpad>();
 
@@ -75,13 +88,20 @@ function App() {
             setLanguage(language);
           }
         },
+        onChangeUsers: setUsers,
       });
       return () => {
         rustpad.current?.dispose();
         rustpad.current = undefined;
       };
     }
-  }, [editor, toast]);
+  }, [editor, toast, setUsers]);
+
+  useEffect(() => {
+    if (connection === "connected") {
+      rustpad.current?.setInfo({ name, hue });
+    }
+  }, [connection, name, hue]);
 
   function handleChangeLanguage(language: string) {
     setLanguage(language);
@@ -209,12 +229,16 @@ function App() {
             <Heading mt={4} mb={1.5} size="sm">
               Active Users
             </Heading>
-            <Stack mb={1.5} fontSize="sm">
-              <HStack p={2} rounded="md" _hover={{ bgColor: "gray.200" }}>
-                <Icon as={VscAccount} />
-                <Text fontWeight="medium">Anonymous Bear</Text>
-                <Text>(you)</Text>
-              </HStack>
+            <Stack spacing={0} mb={1.5} fontSize="sm">
+              <User
+                info={{ name, hue }}
+                isMe
+                onChangeName={(name) => name.length > 0 && setName(name)}
+                onChangeColor={() => setHue(generateHue())}
+              />
+              {Object.entries(users).map(([id, info]) => (
+                <User key={id} info={info} />
+              ))}
             </Stack>
 
             <Heading mt={4} mb={1.5} size="sm">
@@ -248,7 +272,7 @@ function App() {
               mt={2}
               onClick={handleLoadSample}
             >
-              Read the code
+              See the code
             </Button>
           </Container>
         </Flex>

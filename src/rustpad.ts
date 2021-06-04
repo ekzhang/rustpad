@@ -9,7 +9,14 @@ export type RustpadOptions = {
   readonly onDisconnected?: () => unknown;
   readonly onDesynchronized?: () => unknown;
   readonly onChangeLanguage?: (language: string) => unknown;
+  readonly onChangeUsers?: (users: Record<number, UserInfo>) => unknown;
   readonly reconnectInterval?: number;
+};
+
+/** A user currently editing the document. */
+export type UserInfo = {
+  readonly name: string;
+  readonly hue: number;
 };
 
 /** Browser client for Rustpad. */
@@ -28,6 +35,8 @@ class Rustpad {
   private revision: number = 0;
   private outstanding?: OpSeq;
   private buffer?: OpSeq;
+  private users: Record<number, UserInfo> = {};
+  private myInfo?: UserInfo;
 
   // Intermittent local editor state
   private lastValue: string = "";
@@ -72,6 +81,12 @@ class Rustpad {
     return this.ws !== undefined;
   }
 
+  /** Set the user's information. */
+  setInfo(info: UserInfo) {
+    this.myInfo = info;
+    this.sendInfo();
+  }
+
   /**
    * Attempts a WebSocket connection.
    *
@@ -91,6 +106,8 @@ class Rustpad {
       this.connecting = false;
       this.ws = ws;
       this.options.onConnected?.();
+      this.users = {};
+      this.options.onChangeUsers?.(this.users);
       if (this.outstanding) {
         this.sendOperation(this.outstanding);
       }
@@ -138,6 +155,17 @@ class Rustpad {
       }
     } else if (msg.Language !== undefined) {
       this.options.onChangeLanguage?.(msg.Language);
+    } else if (msg.UserInfo !== undefined) {
+      const { id, info } = msg.UserInfo;
+      if (id !== this.me) {
+        this.users = { ...this.users };
+        if (info) {
+          this.users[id] = info;
+        } else {
+          delete this.users[id];
+        }
+        this.options.onChangeUsers?.(this.users);
+      }
     }
   }
 
@@ -181,6 +209,12 @@ class Rustpad {
   private sendOperation(operation: OpSeq) {
     const op = operation.to_string();
     this.ws?.send(`{"Edit":{"revision":${this.revision},"operation":${op}}}`);
+  }
+
+  private sendInfo() {
+    if (this.myInfo) {
+      this.ws?.send(`{"ClientInfo":${JSON.stringify(this.myInfo)}}`);
+    }
   }
 
   // The following functions are based on Firepad's monaco-adapter.js
@@ -281,6 +315,10 @@ type ServerMsg = {
     operations: UserOperation[];
   };
   Language?: string;
+  UserInfo?: {
+    id: number;
+    info: UserInfo | null;
+  };
 };
 
 export default Rustpad;

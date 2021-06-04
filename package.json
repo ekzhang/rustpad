@@ -19,7 +19,8 @@
     "react-dom": "^17.0.2",
     "react-icons": "^4.2.0",
     "react-scripts": "4.0.3",
-    "rustpad-wasm": "file:./rustpad-wasm/pkg"
+    "rustpad-wasm": "file:./rustpad-wasm/pkg",
+    "use-local-storage-state": "^10.0.0"
   },
   "devDependencies": {
     "@types/react": "^17.0.8",
