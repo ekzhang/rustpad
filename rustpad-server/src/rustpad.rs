@@ -240,6 +240,12 @@ impl Rustpad {
         for history_op in &state.operations[revision..] {
             operation = operation.transform(&history_op.operation)?.0;
         }
+        if operation.target_len() > 100000 {
+            bail!(
+                "target length {} is greater than 100 KB maximum",
+                operation.target_len()
+            );
+        }
         let new_text = operation.apply(&state.text)?;
         let mut state = RwLockUpgradableReadGuard::upgrade(state);
         state.operations.push(UserOperation { id, operation });

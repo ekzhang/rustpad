@@ -70,3 +70,39 @@ async fn test_lost_wakeups() -> Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_large_document() -> Result<()> {
+    pretty_env_logger::try_init().ok();
+    let filter = server();
+
+    expect_text(&filter, "stress", "").await;
+
+    let mut client = connect(&filter, "stress").await?;
+    let msg = client.recv().await?;
+    assert_eq!(msg, json!({ "Identity": 0 }));
+
+    let mut operation = OperationSeq::default();
+    operation.insert(&"a".repeat(5000));
+    let msg = json!({
+        "Edit": {
+            "revision": 0,
+            "operation": operation
+        }
+    });
+    client.send(&msg).await;
+    client.recv().await?;
+
+    let mut operation = OperationSeq::default();
+    operation.insert(&"a".repeat(500000));
+    let msg = json!({
+        "Edit": {
+            "revision": 0,
+            "operation": operation
+        }
+    });
+    client.send(&msg).await;
+    client.recv_closed().await?;
+
+    Ok(())
+}
