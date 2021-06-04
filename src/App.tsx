@@ -17,33 +17,28 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
-import {
-  VscChevronRight,
-  VscCircleFilled,
-  VscFolderOpened,
-  VscGist,
-  VscRemote,
-} from "react-icons/vsc";
+import { VscChevronRight, VscFolderOpened, VscGist } from "react-icons/vsc";
 import useStorage from "use-local-storage-state";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
 import raw from "raw.macro";
-import Rustpad, { UserInfo } from "./rustpad";
 import languages from "./languages.json";
 import animals from "./animals.json";
+import Rustpad, { UserInfo } from "./rustpad";
+import useHash from "./useHash";
+import ConnectionStatus from "./ConnectionStatus";
+import Footer from "./Footer";
 import User from "./User";
 
 set_panic_hook();
 
-const version = process.env.REACT_APP_SHA
-  ? process.env.REACT_APP_SHA.slice(0, 7)
-  : "development";
-
-const id = window.location.hash.slice(1);
-const wsUri =
-  (window.location.origin.startsWith("https") ? "wss://" : "ws://") +
-  window.location.host +
-  `/api/socket/${id}`;
+function getWsUri(id: string) {
+  return (
+    (window.location.origin.startsWith("https") ? "wss://" : "ws://") +
+    window.location.host +
+    `/api/socket/${id}`
+  );
+}
 
 function generateName() {
   return "Anonymous " + animals[Math.floor(Math.random() * animals.length)];
@@ -63,14 +58,15 @@ function App() {
   const [hue, setHue] = useStorage("hue", generateHue);
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
   const rustpad = useRef<Rustpad>();
+  const id = useHash();
 
   useEffect(() => {
-    if (editor) {
+    if (editor?.getModel()) {
       const model = editor.getModel()!;
       model.setValue("");
       model.setEOL(0); // LF
       rustpad.current = new Rustpad({
-        uri: wsUri,
+        uri: getWsUri(id),
         editor,
         onConnected: () => setConnection("connected"),
         onDisconnected: () => setConnection("disconnected"),
@@ -95,7 +91,7 @@ function App() {
         rustpad.current = undefined;
       };
     }
-  }, [editor, toast, setUsers]);
+  }, [id, editor, toast, setUsers]);
 
   useEffect(() => {
     if (connection === "connected") {
@@ -136,7 +132,7 @@ function App() {
   }
 
   function handleLoadSample() {
-    if (editor) {
+    if (editor?.getModel()) {
       const model = editor.getModel()!;
       model.pushEditOperations(
         editor.getSelections(),
@@ -168,114 +164,99 @@ function App() {
         Rustpad
       </Box>
       <Flex flex="1 0" minH={0}>
-        <Flex direction="column" bgColor="#f3f3f3" w="xs" overflowY="auto">
-          <Container maxW="full" lineHeight={1.4} py={4}>
-            <HStack spacing={1}>
-              <Icon
-                as={VscCircleFilled}
-                color={
-                  {
-                    connected: "green.500",
-                    disconnected: "orange.500",
-                    desynchronized: "red.500",
-                  }[connection]
-                }
-              />
-              <Text fontSize="sm" fontStyle="italic" color="gray.600">
-                {
-                  {
-                    connected: "You are connected!",
-                    disconnected: "Connecting to the server...",
-                    desynchronized: "Disconnected, please refresh.",
-                  }[connection]
-                }
-              </Text>
-            </HStack>
+        <Container
+          w="xs"
+          bgColor="#f3f3f3"
+          overflowY="auto"
+          maxW="full"
+          lineHeight={1.4}
+          py={4}
+        >
+          <ConnectionStatus connection={connection} />
 
-            <Heading mt={4} mb={1.5} size="sm">
-              Language
-            </Heading>
-            <Select
-              size="sm"
-              bgColor="white"
-              value={language}
-              onChange={(event) => handleChangeLanguage(event.target.value)}
-            >
-              {languages.map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang}
-                </option>
-              ))}
-            </Select>
+          <Heading mt={4} mb={1.5} size="sm">
+            Language
+          </Heading>
+          <Select
+            size="sm"
+            bgColor="white"
+            value={language}
+            onChange={(event) => handleChangeLanguage(event.target.value)}
+          >
+            {languages.map((lang) => (
+              <option key={lang} value={lang}>
+                {lang}
+              </option>
+            ))}
+          </Select>
 
-            <Heading mt={4} mb={1.5} size="sm">
-              Share Link
-            </Heading>
-            <InputGroup size="sm">
-              <Input
-                readOnly
-                pr="3.5rem"
-                variant="outline"
-                bgColor="white"
-                value={`${window.location.origin}/#${id}`}
-              />
-              <InputRightElement width="3.5rem">
-                <Button h="1.4rem" size="xs" onClick={handleCopy}>
-                  Copy
-                </Button>
-              </InputRightElement>
-            </InputGroup>
-
-            <Heading mt={4} mb={1.5} size="sm">
-              Active Users
-            </Heading>
-            <Stack spacing={0} mb={1.5} fontSize="sm">
-              <User
-                info={{ name, hue }}
-                isMe
-                onChangeName={(name) => name.length > 0 && setName(name)}
-                onChangeColor={() => setHue(generateHue())}
-              />
-              {Object.entries(users).map(([id, info]) => (
-                <User key={id} info={info} />
-              ))}
-            </Stack>
-
-            <Heading mt={4} mb={1.5} size="sm">
-              About
-            </Heading>
-            <Text fontSize="sm" mb={1.5}>
-              <strong>Rustpad</strong> is an open-source collaborative text
-              editor based on the <em>operational transformation</em> algorithm.
-            </Text>
-            <Text fontSize="sm" mb={1.5}>
-              Share a link to this pad with others, and they can edit from their
-              browser while seeing your changes in real time.
-            </Text>
-            <Text fontSize="sm" mb={1.5}>
-              Built using Rust and TypeScript. See the{" "}
-              <Link
-                color="blue.600"
-                fontWeight="semibold"
-                href="https://github.com/ekzhang/rustpad"
-                isExternal
-              >
-                GitHub repository
-              </Link>{" "}
-              for details.
-            </Text>
-
-            <Button
-              size="sm"
-              colorScheme="purple"
+          <Heading mt={4} mb={1.5} size="sm">
+            Share Link
+          </Heading>
+          <InputGroup size="sm">
+            <Input
+              readOnly
+              pr="3.5rem"
               variant="outline"
-              mt={2}
-              onClick={handleLoadSample}
+              bgColor="white"
+              value={`${window.location.origin}/#${id}`}
+            />
+            <InputRightElement width="3.5rem">
+              <Button h="1.4rem" size="xs" onClick={handleCopy}>
+                Copy
+              </Button>
+            </InputRightElement>
+          </InputGroup>
+
+          <Heading mt={4} mb={1.5} size="sm">
+            Active Users
+          </Heading>
+          <Stack spacing={0} mb={1.5} fontSize="sm">
+            <User
+              info={{ name, hue }}
+              isMe
+              onChangeName={(name) => name.length > 0 && setName(name)}
+              onChangeColor={() => setHue(generateHue())}
+            />
+            {Object.entries(users).map(([id, info]) => (
+              <User key={id} info={info} />
+            ))}
+          </Stack>
+
+          <Heading mt={4} mb={1.5} size="sm">
+            About
+          </Heading>
+          <Text fontSize="sm" mb={1.5}>
+            <strong>Rustpad</strong> is an open-source collaborative text editor
+            based on the <em>operational transformation</em> algorithm.
+          </Text>
+          <Text fontSize="sm" mb={1.5}>
+            Share a link to this pad with others, and they can edit from their
+            browser while seeing your changes in real time.
+          </Text>
+          <Text fontSize="sm" mb={1.5}>
+            Built using Rust and TypeScript. See the{" "}
+            <Link
+              color="blue.600"
+              fontWeight="semibold"
+              href="https://github.com/ekzhang/rustpad"
+              isExternal
             >
-              See the code
-            </Button>
-          </Container>
-        </Flex>
+              GitHub repository
+            </Link>{" "}
+            for details.
+          </Text>
+
+          <Button
+            size="sm"
+            colorScheme="purple"
+            variant="outline"
+            mt={2}
+            onClick={handleLoadSample}
+          >
+            See the code
+          </Button>
+        </Container>
         <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
           <HStack
             h={6}
@@ -305,19 +286,7 @@ function App() {
           </Box>
         </Flex>
       </Flex>
-      <Flex h="22px" bgColor="#0071c3" color="white">
-        <Flex
-          h="100%"
-          bgColor="#09835c"
-          pl={2.5}
-          pr={4}
-          fontSize="sm"
-          align="center"
-        >
-          <Icon as={VscRemote} mb={-0.5} mr={1} />
-          <Text fontSize="xs">Rustpad ({version})</Text>
-        </Flex>
-      </Flex>
+      <Footer />
     </Flex>
   );
 }
