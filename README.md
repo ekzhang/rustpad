@@ -1,13 +1,14 @@
 # Rustpad
 
 **Rustpad** is an _efficient_ and _minimal_ open-source collaborative text
-editor based on the operational transformation algorithm. Rustpad allows users
-to collaborate in real time while writing code in their browser.
+editor based on the operational transformation algorithm. It lets users
+collaborate in real time while writing code in their browser. Rustpad is
+completely self-hosted and fits in a tiny Docker image, no database required.
 
 <p align="center">
 <a href="https://rustpad.io/">
 <img src="https://i.imgur.com/1cg3xUs.png" width="600"><br>
-<strong>Rustpad.io</strong>
+<strong>rustpad.io</strong>
 </a>
 </p>
 
@@ -15,8 +16,8 @@ The server is written in Rust using the
 [warp](https://github.com/seanmonstar/warp) web server framework and the
 [operational-transform](https://github.com/spebern/operational-transform-rs)
 library. We use [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen) to
-compile the text operation logic to WebAssembly code that runs in the browser.
-The frontend is written in TypeScript using [React](https://reactjs.org/) and
+compile text operation logic to WebAssembly code, which runs in the browser. The
+frontend is written in TypeScript using [React](https://reactjs.org/) and
 interfaces with [Monaco](https://github.com/microsoft/monaco-editor), the text
 editor that powers VS Code.
 

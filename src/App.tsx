@@ -254,7 +254,7 @@ function App() {
             mt={2}
             onClick={handleLoadSample}
           >
-            See the code
+            Read the code
           </Button>
         </Container>
         <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
