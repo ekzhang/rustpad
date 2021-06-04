@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use futures::prelude::*;
@@ -11,7 +10,6 @@ use operational_transform::OperationSeq;
 use parking_lot::{RwLock, RwLockUpgradableReadGuard};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, Notify};
-use tokio::time;
 use warp::ws::{Message, WebSocket};
 
 /// The main object representing a collaborative session.
@@ -130,15 +128,16 @@ impl Rustpad {
         let mut revision: usize = 0;
 
         loop {
+            // In order to avoid the "lost wakeup" problem, we first request a
+            // notification, **then** check the current state for new revisions.
+            // This is the same approach that `tokio::sync::watch` takes.
+            let notified = self.notify.notified();
             if self.revision() > revision {
                 revision = self.send_history(revision, &mut socket).await?
             }
 
-            let sleep = time::sleep(Duration::from_millis(500));
-            tokio::pin!(sleep);
             tokio::select! {
-                _ = &mut sleep => {}
-                _ = self.notify.notified() => {}
+                _ = notified => {}
                 update = update_rx.recv() => {
                     socket.send(update?.into()).await?;
                 }
