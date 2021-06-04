@@ -1,5 +1,6 @@
 //! Eventually consistent server-side logic for Rustpad.
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
@@ -31,12 +32,19 @@ struct State {
     operations: Vec<UserOperation>,
     text: String,
     language: Option<String>,
+    users: HashMap<u64, UserInfo>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct UserOperation {
     id: u64,
     operation: OperationSeq,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct UserInfo {
+    name: String,
+    hue: u32,
 }
 
 /// A message received from the client over WebSocket.
@@ -47,8 +55,10 @@ enum ClientMsg {
         revision: usize,
         operation: OperationSeq,
     },
-    /// Set the language of the editor.
+    /// Sets the language of the editor.
     SetLanguage(String),
+    /// Sets the user's current information.
+    ClientInfo(UserInfo),
 }
 
 /// A message sent to the client over WebSocket.
@@ -63,6 +73,8 @@ enum ServerMsg {
     },
     /// Broadcasts the current language, last writer wins.
     Language(String),
+    /// Broadcasts a user's information, or `None` on disconnect.
+    UserInfo { id: u64, info: Option<UserInfo> },
 }
 
 impl From<ServerMsg> for Message {
@@ -93,6 +105,10 @@ impl Rustpad {
             warn!("connection terminated early: {}", e);
         }
         info!("disconnection, id = {}", id);
+        self.state.write().users.remove(&id);
+        self.update
+            .send(ServerMsg::UserInfo { id, info: None })
+            .ok();
     }
 
     /// Returns a snapshot of the latest text.
@@ -148,6 +164,12 @@ impl Rustpad {
             if let Some(language) = &state.language {
                 messages.push(ServerMsg::Language(language.clone()));
             }
+            for (&id, info) in &state.users {
+                messages.push(ServerMsg::UserInfo {
+                    id,
+                    info: Some(info.clone()),
+                });
+            }
         };
         for msg in messages {
             socket.send(msg.into()).await?;
@@ -190,6 +212,14 @@ impl Rustpad {
             ClientMsg::SetLanguage(language) => {
                 self.state.write().language = Some(language.clone());
                 self.update.send(ServerMsg::Language(language)).ok();
+            }
+            ClientMsg::ClientInfo(info) => {
+                self.state.write().users.insert(id, info.clone());
+                let msg = ServerMsg::UserInfo {
+                    id,
+                    info: Some(info),
+                };
+                self.update.send(msg).ok();
             }
         }
         Ok(())
