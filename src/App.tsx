@@ -17,7 +17,12 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
-import { VscChevronRight, VscFolderOpened, VscGist } from "react-icons/vsc";
+import {
+  VscChevronRight,
+  VscFolderOpened,
+  VscGist,
+  VscRepoPull,
+} from "react-icons/vsc";
 import useStorage from "use-local-storage-state";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
@@ -251,7 +256,8 @@ function App() {
             size="sm"
             colorScheme="purple"
             variant="outline"
-            mt={2}
+            leftIcon={<VscRepoPull />}
+            mt={1}
             onClick={handleLoadSample}
           >
             Read the code
