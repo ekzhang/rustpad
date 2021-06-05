@@ -7,7 +7,7 @@ completely self-hosted and fits in a tiny Docker image, no database required.
 
 <p align="center">
 <a href="https://rustpad.io/">
-<img src="https://i.imgur.com/1cg3xUs.png" width="600"><br>
+<img src="https://i.imgur.com/WjU5UrP.png" width="800"><br>
 <strong>rustpad.io</strong>
 </a>
 </p>
