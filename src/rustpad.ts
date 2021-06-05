@@ -230,6 +230,7 @@ class Rustpad {
     } else {
       this.buffer = this.buffer.compose(operation);
     }
+    this.transformCursors(operation);
   }
 
   private sendOperation(operation: OpSeq) {
@@ -306,6 +307,19 @@ class Rustpad {
 
     this.lastValue = this.model.getValue();
     this.ignoreChanges = false;
+
+    this.transformCursors(operation);
+  }
+
+  private transformCursors(operation: OpSeq) {
+    for (const data of Object.values(this.userCursors)) {
+      data.cursors = data.cursors.map((c) => operation.transform_index(c));
+      data.selections = data.selections.map(([s, e]) => [
+        operation.transform_index(s),
+        operation.transform_index(e),
+      ]);
+    }
+    this.updateCursors();
   }
 
   private updateCursors() {

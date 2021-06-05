@@ -155,9 +155,28 @@ async fn test_cursors() -> Result<()> {
     client.send(&json!({ "Invalid": "please close" })).await;
     client.recv_closed().await?;
 
+    let msg = json!({
+        "Edit": {
+            "revision": 0,
+            "operation": ["a"]
+        }
+    });
+    client2.send(&msg).await;
+
     let mut client3 = connect(&filter, "foobar").await?;
     assert_eq!(client3.recv().await?, json!({ "Identity": 2 }));
-    assert_eq!(client3.recv().await?, cursors2_resp);
+    client3.recv().await?;
+
+    let transformed_cursors2_resp = json!({
+        "UserCursor": {
+            "id": 1,
+            "data": {
+                "cursors": [11],
+                "selections": []
+            }
+        }
+    });
+    assert_eq!(client3.recv().await?, transformed_cursors2_resp);
 
     Ok(())
 }

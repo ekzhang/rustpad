@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, Notify};
 use warp::ws::{Message, WebSocket};
 
+use crate::ot::transform_index;
+
 /// The main object representing a collaborative session.
 pub struct Rustpad {
     /// State modified by critical sections of the code.
@@ -136,8 +138,7 @@ impl Rustpad {
     async fn handle_connection(&self, id: u64, mut socket: WebSocket) -> Result<()> {
         let mut update_rx = self.update.subscribe();
 
-        self.send_initial(id, &mut socket).await?;
-        let mut revision: usize = 0;
+        let mut revision: usize = self.send_initial(id, &mut socket).await?;
 
         loop {
             // In order to avoid the "lost wakeup" problem, we first request a
@@ -167,11 +168,17 @@ impl Rustpad {
         Ok(())
     }
 
-    async fn send_initial(&self, id: u64, socket: &mut WebSocket) -> Result<()> {
+    async fn send_initial(&self, id: u64, socket: &mut WebSocket) -> Result<usize> {
         socket.send(ServerMsg::Identity(id).into()).await?;
         let mut messages = Vec::new();
-        {
+        let revision = {
             let state = self.state.read();
+            if !state.operations.is_empty() {
+                messages.push(ServerMsg::History {
+                    start: 0,
+                    operations: state.operations.clone(),
+                });
+            }
             if let Some(language) = &state.language {
                 messages.push(ServerMsg::Language(language.clone()));
             }
@@ -187,11 +194,12 @@ impl Rustpad {
                     data: data.clone(),
                 });
             }
+            state.operations.len()
         };
         for msg in messages {
             socket.send(msg.into()).await?;
         }
-        Ok(())
+        Ok(revision)
     }
 
     async fn send_history(&self, start: usize, socket: &mut WebSocket) -> Result<usize> {
@@ -271,6 +279,15 @@ impl Rustpad {
         }
         let new_text = operation.apply(&state.text)?;
         let mut state = RwLockUpgradableReadGuard::upgrade(state);
+        for (_, data) in state.cursors.iter_mut() {
+            for cursor in data.cursors.iter_mut() {
+                *cursor = transform_index(&operation, *cursor);
+            }
+            for (start, end) in data.selections.iter_mut() {
+                *start = transform_index(&operation, *start);
+                *end = transform_index(&operation, *end);
+            }
+        }
         state.operations.push(UserOperation { id, operation });
         state.text = new_text;
         Ok(())

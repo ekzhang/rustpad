@@ -133,6 +133,27 @@ impl OpSeq {
         self.0.target_len()
     }
 
+    /// Return the new index of a position in the string.
+    pub fn transform_index(&self, position: u32) -> u32 {
+        let mut index = position as i32;
+        let mut new_index = index;
+        for op in self.0.ops() {
+            use operational_transform::Operation::*;
+            match op {
+                &Retain(n) => index -= n as i32,
+                Insert(s) => new_index += s.len() as i32,
+                &Delete(n) => {
+                    new_index -= std::cmp::min(index, n as i32);
+                    index -= n as i32;
+                }
+            }
+            if index < 0 {
+                break;
+            }
+        }
+        new_index as u32
+    }
+
     /// Attempts to deserialize an `OpSeq` from a JSON string.
     pub fn from_str(s: &str) -> Option<OpSeq> {
         serde_json::from_str(s).ok()

@@ -11,6 +11,7 @@ use rustpad::Rustpad;
 use tokio::time::{self, Instant};
 use warp::{filters::BoxedFilter, ws::Ws, Filter, Reply};
 
+mod ot;
 mod rustpad;
 
 /// An entry stored in the global server map.
