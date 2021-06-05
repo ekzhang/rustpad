@@ -31,7 +31,7 @@ function User({ info, isMe = false, onChangeName, onChangeColor }: UserProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const nameColor = `hsl(${info.hue}, 90%, 15%)`;
+  const nameColor = `hsl(${info.hue}, 90%, 25%)`;
   return (
     <Popover
       placement="right"

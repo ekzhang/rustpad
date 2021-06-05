@@ -110,3 +110,54 @@ async fn test_leave_rejoin() -> Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_cursors() -> Result<()> {
+    pretty_env_logger::try_init().ok();
+    let filter = server();
+
+    let mut client = connect(&filter, "foobar").await?;
+    assert_eq!(client.recv().await?, json!({ "Identity": 0 }));
+
+    let cursors = json!({
+        "cursors": [4, 6, 7],
+        "selections": [[5, 10], [3, 4]]
+    });
+    client.send(&json!({ "CursorData": cursors })).await;
+
+    let cursors_resp = json!({
+        "UserCursor": {
+            "id": 0,
+            "data": cursors
+        }
+    });
+    assert_eq!(client.recv().await?, cursors_resp);
+
+    let mut client2 = connect(&filter, "foobar").await?;
+    assert_eq!(client2.recv().await?, json!({ "Identity": 1 }));
+    assert_eq!(client2.recv().await?, cursors_resp);
+
+    let cursors2 = json!({
+        "cursors": [10],
+        "selections": []
+    });
+    client2.send(&json!({ "CursorData": cursors2 })).await;
+
+    let cursors2_resp = json!({
+        "UserCursor": {
+            "id": 1,
+            "data": cursors2
+        }
+    });
+    assert_eq!(client2.recv().await?, cursors2_resp);
+    assert_eq!(client.recv().await?, cursors2_resp);
+
+    client.send(&json!({ "Invalid": "please close" })).await;
+    client.recv_closed().await?;
+
+    let mut client3 = connect(&filter, "foobar").await?;
+    assert_eq!(client3.recv().await?, json!({ "Identity": 2 }));
+    assert_eq!(client3.recv().await?, cursors2_resp);
+
+    Ok(())
+}

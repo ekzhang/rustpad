@@ -31,6 +31,7 @@ struct State {
     text: String,
     language: Option<String>,
     users: HashMap<u64, UserInfo>,
+    cursors: HashMap<u64, CursorData>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -45,6 +46,12 @@ struct UserInfo {
     hue: u32,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct CursorData {
+    cursors: Vec<u32>,
+    selections: Vec<(u32, u32)>,
+}
+
 /// A message received from the client over WebSocket.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 enum ClientMsg {
@@ -57,6 +64,8 @@ enum ClientMsg {
     SetLanguage(String),
     /// Sets the user's current information.
     ClientInfo(UserInfo),
+    /// Sets the user's cursor and selection positions.
+    CursorData(CursorData),
 }
 
 /// A message sent to the client over WebSocket.
@@ -73,6 +82,8 @@ enum ServerMsg {
     Language(String),
     /// Broadcasts a user's information, or `None` on disconnect.
     UserInfo { id: u64, info: Option<UserInfo> },
+    /// Broadcasts a user's cursor position.
+    UserCursor { id: u64, data: CursorData },
 }
 
 impl From<ServerMsg> for Message {
@@ -104,6 +115,7 @@ impl Rustpad {
         }
         info!("disconnection, id = {}", id);
         self.state.write().users.remove(&id);
+        self.state.write().cursors.remove(&id);
         self.update
             .send(ServerMsg::UserInfo { id, info: None })
             .ok();
@@ -169,6 +181,12 @@ impl Rustpad {
                     info: Some(info.clone()),
                 });
             }
+            for (&id, data) in &state.cursors {
+                messages.push(ServerMsg::UserCursor {
+                    id,
+                    data: data.clone(),
+                });
+            }
         };
         for msg in messages {
             socket.send(msg.into()).await?;
@@ -218,6 +236,11 @@ impl Rustpad {
                     id,
                     info: Some(info),
                 };
+                self.update.send(msg).ok();
+            }
+            ClientMsg::CursorData(data) => {
+                self.state.write().cursors.insert(id, data.clone());
+                let msg = ServerMsg::UserCursor { id, data };
                 self.update.send(msg).ok();
             }
         }

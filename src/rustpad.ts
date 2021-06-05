@@ -1,5 +1,8 @@
 import { OpSeq } from "rustpad-wasm";
-import type { editor } from "monaco-editor/esm/vs/editor/editor.api";
+import type {
+  editor,
+  IDisposable,
+} from "monaco-editor/esm/vs/editor/editor.api";
 
 /** Options passed in to the Rustpad constructor. */
 export type RustpadOptions = {
@@ -25,7 +28,9 @@ class Rustpad {
   private connecting?: boolean;
   private recentFailures: number = 0;
   private readonly model: editor.ITextModel;
-  private readonly onChangeHandle: any;
+  private readonly onChangeHandle: IDisposable;
+  private readonly onCursorHandle: IDisposable;
+  private readonly onSelectionHandle: IDisposable;
   private readonly beforeUnload: (event: BeforeUnloadEvent) => void;
   private readonly tryConnectId: number;
   private readonly resetFailuresId: number;
@@ -36,16 +41,25 @@ class Rustpad {
   private outstanding?: OpSeq;
   private buffer?: OpSeq;
   private users: Record<number, UserInfo> = {};
+  private userCursors: Record<number, CursorData> = {};
   private myInfo?: UserInfo;
+  private cursorData: CursorData = { cursors: [], selections: [] };
 
   // Intermittent local editor state
   private lastValue: string = "";
   private ignoreChanges: boolean = false;
+  private oldDecorations: string[] = [];
 
   constructor(readonly options: RustpadOptions) {
     this.model = options.editor.getModel()!;
     this.onChangeHandle = options.editor.onDidChangeModelContent((e) =>
       this.onChange(e)
+    );
+    this.onCursorHandle = options.editor.onDidChangeCursorPosition((e) =>
+      this.onCursor(e)
+    );
+    this.onSelectionHandle = options.editor.onDidChangeCursorSelection((e) =>
+      this.onSelection(e)
     );
     this.beforeUnload = (event: BeforeUnloadEvent) => {
       if (this.outstanding) {
@@ -70,6 +84,8 @@ class Rustpad {
   dispose() {
     window.clearInterval(this.tryConnectId);
     window.clearInterval(this.resetFailuresId);
+    this.onSelectionHandle.dispose();
+    this.onCursorHandle.dispose();
     this.onChangeHandle.dispose();
     window.removeEventListener("beforeunload", this.beforeUnload);
     this.ws?.close();
@@ -108,6 +124,8 @@ class Rustpad {
       this.options.onConnected?.();
       this.users = {};
       this.options.onChangeUsers?.(this.users);
+      this.sendInfo();
+      this.sendCursorData();
       if (this.outstanding) {
         this.sendOperation(this.outstanding);
       }
@@ -163,8 +181,16 @@ class Rustpad {
           this.users[id] = info;
         } else {
           delete this.users[id];
+          delete this.userCursors[id];
         }
+        this.updateCursors();
         this.options.onChangeUsers?.(this.users);
+      }
+    } else if (msg.UserCursor !== undefined) {
+      const { id, data } = msg.UserCursor;
+      if (id !== this.me) {
+        this.userCursors[id] = data;
+        this.updateCursors();
       }
     }
   }
@@ -217,7 +243,11 @@ class Rustpad {
     }
   }
 
-  // The following functions are based on Firepad's monaco-adapter.js
+  private sendCursorData() {
+    if (!this.buffer) {
+      this.ws?.send(`{"CursorData":${JSON.stringify(this.cursorData)}}`);
+    }
+  }
 
   private applyOperation(operation: OpSeq) {
     if (operation.is_noop()) return;
@@ -278,6 +308,59 @@ class Rustpad {
     this.ignoreChanges = false;
   }
 
+  private updateCursors() {
+    const decorations: editor.IModelDeltaDecoration[] = [];
+
+    for (const [id, data] of Object.entries(this.userCursors)) {
+      if (id in this.users) {
+        const { hue, name } = this.users[id as any];
+        generateCssStyles(hue);
+
+        for (const cursor of data.cursors) {
+          const position = this.model.getPositionAt(cursor);
+          decorations.push({
+            options: {
+              className: `remote-cursor-${hue}`,
+              stickiness: 1,
+              zIndex: 2,
+            },
+            range: {
+              startLineNumber: position.lineNumber,
+              startColumn: position.column,
+              endLineNumber: position.lineNumber,
+              endColumn: position.column,
+            },
+          });
+        }
+        for (const selection of data.selections) {
+          const position = this.model.getPositionAt(selection[0]);
+          const positionEnd = this.model.getPositionAt(selection[1]);
+          decorations.push({
+            options: {
+              className: `remote-selection-${hue}`,
+              hoverMessage: {
+                value: name,
+              },
+              stickiness: 1,
+              zIndex: 1,
+            },
+            range: {
+              startLineNumber: position.lineNumber,
+              startColumn: position.column,
+              endLineNumber: positionEnd.lineNumber,
+              endColumn: positionEnd.column,
+            },
+          });
+        }
+      }
+    }
+
+    this.oldDecorations = this.model.deltaDecorations(
+      this.oldDecorations,
+      decorations
+    );
+  }
+
   private onChange(event: editor.IModelContentChangedEvent) {
     if (!this.ignoreChanges) {
       const content = this.lastValue;
@@ -301,11 +384,31 @@ class Rustpad {
       this.lastValue = this.model.getValue();
     }
   }
+
+  private onCursor(event: editor.ICursorPositionChangedEvent) {
+    const cursors = [event.position, ...event.secondaryPositions];
+    this.cursorData.cursors = cursors.map((p) => this.model.getOffsetAt(p));
+    this.sendCursorData();
+  }
+
+  private onSelection(event: editor.ICursorSelectionChangedEvent) {
+    const selections = [event.selection, ...event.secondarySelections];
+    this.cursorData.selections = selections.map((s) => [
+      this.model.getOffsetAt(s.getStartPosition()),
+      this.model.getOffsetAt(s.getEndPosition()),
+    ]);
+    this.sendCursorData();
+  }
 }
 
 type UserOperation = {
   id: number;
   operation: any;
+};
+
+type CursorData = {
+  cursors: number[];
+  selections: [number, number][];
 };
 
 type ServerMsg = {
@@ -319,6 +422,32 @@ type ServerMsg = {
     id: number;
     info: UserInfo | null;
   };
+  UserCursor?: {
+    id: number;
+    data: CursorData;
+  };
 };
+
+/** Cache for private use by `generateCssStyles()`. */
+const generatedStyles = new Set<number>();
+
+/** Add CSS styles for a remote user's cursor and selection. */
+function generateCssStyles(hue: number) {
+  if (!generatedStyles.has(hue)) {
+    generatedStyles.add(hue);
+    const css = `
+      .monaco-editor .remote-selection-${hue} {
+        background-color: hsla(${hue}, 90%, 80%, 0.5);
+      }
+      .monaco-editor .remote-cursor-${hue} {
+        border-left: 2px solid hsl(${hue}, 90%, 25%);
+      }
+    `;
+    const element = document.createElement("style");
+    const text = document.createTextNode(css);
+    element.appendChild(text);
+    document.head.appendChild(element);
+  }
+}
 
 export default Rustpad;
