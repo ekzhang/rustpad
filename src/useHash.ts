@@ -9,7 +9,7 @@ function getHash() {
     for (let i = 0; i < idLen; i++) {
       id += chars[Math.floor(Math.random() * chars.length)];
     }
-    window.location.hash = id;
+    window.history.replaceState(null, "", "#" + id);
   }
   return window.location.hash.slice(1);
 }
