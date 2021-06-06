@@ -50,7 +50,10 @@ function User({
         <HStack
           p={2}
           rounded="md"
-          _hover={{ bgColor: "gray.200", cursor: "pointer" }}
+          _hover={{
+            bgColor: darkMode ? "#464647" : "gray.200",
+            cursor: "pointer",
+          }}
           onClick={() => isMe && onOpen()}
         >
           <Icon color={darkMode ? "#cbcaca" : undefined} as={VscAccount} />
@@ -60,11 +63,20 @@ function User({
           {isMe && <Text color={darkMode ? "#cbcaca" : undefined}>(you)</Text>}
         </HStack>
       </PopoverTrigger>
-      <PopoverContent>
-        <PopoverHeader fontWeight="semibold">Update Info</PopoverHeader>
-        <PopoverArrow />
+      <PopoverContent
+        bg={darkMode ? "#333333" : "white"}
+        color={darkMode ? "#cbcaca" : undefined}
+        borderColor={darkMode ? "#464647" : "gray.200"}
+      >
+        <PopoverHeader
+          fontWeight="semibold"
+          borderColor={darkMode ? "#464647" : "gray.200"}
+        >
+          Update Info
+        </PopoverHeader>
+        <PopoverArrow bg={darkMode ? "#333333" : "white"} />
         <PopoverCloseButton />
-        <PopoverBody>
+        <PopoverBody borderColor={darkMode ? "#464647" : "gray.200"}>
           <Input
             ref={inputRef}
             mb={2}
@@ -76,12 +88,17 @@ function User({
             size="sm"
             w="100%"
             leftIcon={<FaPalette />}
+            bg={darkMode ? "#464647" : "gray.200"}
             onClick={onChangeColor}
           >
             Change Color
           </Button>
         </PopoverBody>
-        <PopoverFooter d="flex" justifyContent="flex-end">
+        <PopoverFooter
+          d="flex"
+          justifyContent="flex-end"
+          borderColor={darkMode ? "#464647" : "gray.200"}
+        >
           <ButtonGroup size="sm">
             <Button colorScheme="blue" onClick={onClose}>
               Done
