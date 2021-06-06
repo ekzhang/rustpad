@@ -25,9 +25,16 @@ type UserProps = {
   isMe?: boolean;
   onChangeName?: (name: string) => unknown;
   onChangeColor?: () => unknown;
+  darkMode: boolean;
 };
 
-function User({ info, isMe = false, onChangeName, onChangeColor }: UserProps) {
+function User({
+  info,
+  isMe = false,
+  onChangeName,
+  onChangeColor,
+  darkMode,
+}: UserProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -46,11 +53,11 @@ function User({ info, isMe = false, onChangeName, onChangeColor }: UserProps) {
           _hover={{ bgColor: "gray.200", cursor: "pointer" }}
           onClick={() => isMe && onOpen()}
         >
-          <Icon as={VscAccount} />
+          <Icon color={darkMode ? "#cbcaca" : undefined} as={VscAccount} />
           <Text fontWeight="medium" color={nameColor}>
             {info.name}
           </Text>
-          {isMe && <Text>(you)</Text>}
+          {isMe && <Text color={darkMode ? "#cbcaca" : undefined}>(you)</Text>}
         </HStack>
       </PopoverTrigger>
       <PopoverContent>

@@ -3,9 +3,10 @@ import { VscCircleFilled } from "react-icons/vsc";
 
 type ConnectionStatusProps = {
   connection: "connected" | "disconnected" | "desynchronized";
+  darkMode: boolean;
 };
 
-function ConnectionStatus({ connection }: ConnectionStatusProps) {
+function ConnectionStatus({ connection, darkMode }: ConnectionStatusProps) {
   return (
     <HStack spacing={1}>
       <Icon
@@ -18,7 +19,7 @@ function ConnectionStatus({ connection }: ConnectionStatusProps) {
           }[connection]
         }
       />
-      <Text fontSize="sm" fontStyle="italic" color="gray.600">
+      <Text fontSize="sm" fontStyle="italic" color={darkMode ? "gray.300" : "gray.600"}>
         {
           {
             connected: "You are connected!",

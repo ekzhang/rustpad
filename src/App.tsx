@@ -14,6 +14,7 @@ import {
   Link,
   Select,
   Stack,
+  Switch,
   Text,
   useToast,
 } from "@chakra-ui/react";
@@ -62,6 +63,7 @@ function App() {
   const [name, setName] = useStorage("name", generateName);
   const [hue, setHue] = useStorage("hue", generateHue);
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
+  const [darkMode, setDarkMode] = useStorage("darkMode", () => false);
   const rustpad = useRef<Rustpad>();
   const id = useHash();
 
@@ -156,12 +158,16 @@ function App() {
     }
   }
 
+  function handleDarkMode() {
+    setDarkMode(!darkMode);
+  }
+
   return (
     <Flex direction="column" h="100vh" overflow="hidden">
       <Box
         flexShrink={0}
-        bgColor="#e8e8e8"
-        color="#383838"
+        bgColor={darkMode ? "#333333" : "#e8e8e8"}
+        color={darkMode ? "#cbcaca" : "#383838"}
         textAlign="center"
         fontSize="sm"
         py={0.5}
@@ -171,15 +177,28 @@ function App() {
       <Flex flex="1 0" minH={0}>
         <Container
           w="xs"
-          bgColor="#f3f3f3"
+          bgColor={darkMode ? "#252526" : "#f3f3f3"}
           overflowY="auto"
           maxW="full"
           lineHeight={1.4}
           py={4}
         >
-          <ConnectionStatus connection={connection} />
+          <ConnectionStatus darkMode={darkMode} connection={connection} />
 
-          <Heading mt={4} mb={1.5} size="sm">
+          <Flex justifyContent="space-between" mt={4} mb={1.5} w="full">
+            <Heading color={darkMode ? "#cbcaca" : undefined} size="sm">
+              Dark mode
+            </Heading>
+
+            <Switch isChecked={darkMode} onChange={handleDarkMode} />
+          </Flex>
+
+          <Heading
+            color={darkMode ? "#cbcaca" : undefined}
+            mt={4}
+            mb={1.5}
+            size="sm"
+          >
             Language
           </Heading>
           <Select
@@ -195,7 +214,12 @@ function App() {
             ))}
           </Select>
 
-          <Heading mt={4} mb={1.5} size="sm">
+          <Heading
+            color={darkMode ? "#cbcaca" : undefined}
+            mt={4}
+            mb={1.5}
+            size="sm"
+          >
             Share Link
           </Heading>
           <InputGroup size="sm">
@@ -213,7 +237,12 @@ function App() {
             </InputRightElement>
           </InputGroup>
 
-          <Heading mt={4} mb={1.5} size="sm">
+          <Heading
+            color={darkMode ? "#cbcaca" : undefined}
+            mt={4}
+            mb={1.5}
+            size="sm"
+          >
             Active Users
           </Heading>
           <Stack spacing={0} mb={1.5} fontSize="sm">
@@ -222,24 +251,30 @@ function App() {
               isMe
               onChangeName={(name) => name.length > 0 && setName(name)}
               onChangeColor={() => setHue(generateHue())}
+              darkMode={darkMode}
             />
             {Object.entries(users).map(([id, info]) => (
-              <User key={id} info={info} />
+              <User key={id} info={info} darkMode={darkMode} />
             ))}
           </Stack>
 
-          <Heading mt={4} mb={1.5} size="sm">
+          <Heading
+            color={darkMode ? "#cbcaca" : undefined}
+            mt={4}
+            mb={1.5}
+            size="sm"
+          >
             About
           </Heading>
-          <Text fontSize="sm" mb={1.5}>
+          <Text color={darkMode ? "#cbcaca" : undefined} fontSize="sm" mb={1.5}>
             <strong>Rustpad</strong> is an open-source collaborative text editor
             based on the <em>operational transformation</em> algorithm.
           </Text>
-          <Text fontSize="sm" mb={1.5}>
+          <Text color={darkMode ? "#cbcaca" : undefined} fontSize="sm" mb={1.5}>
             Share a link to this pad with others, and they can edit from their
             browser while seeing your changes in real time.
           </Text>
-          <Text fontSize="sm" mb={1.5}>
+          <Text color={darkMode ? "#cbcaca" : undefined} fontSize="sm" mb={1.5}>
             Built using Rust and TypeScript. See the{" "}
             <Link
               color="blue.600"
@@ -267,7 +302,8 @@ function App() {
           <HStack
             h={6}
             spacing={1}
-            color="gray.500"
+            color={darkMode ? "#cbcaca" : "gray.400"}
+            backgroundColor={darkMode ? "#1e1e1e" : "#fffffe"}
             fontWeight="medium"
             fontSize="13px"
             px={3.5}
@@ -281,7 +317,7 @@ function App() {
           </HStack>
           <Box flex={1} minH={0}>
             <Editor
-              theme="vs"
+              theme={darkMode ? "vs-dark" : "vs"}
               language={language}
               options={{
                 automaticLayout: true,
