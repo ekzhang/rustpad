@@ -187,7 +187,7 @@ function App() {
 
           <Flex justifyContent="space-between" mt={4} mb={1.5} w="full">
             <Heading color={darkMode ? "#cbcaca" : undefined} size="sm">
-              Dark mode
+              Dark Mode
             </Heading>
 
             <Switch isChecked={darkMode} onChange={handleDarkMode} />
