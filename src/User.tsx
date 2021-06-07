@@ -88,6 +88,7 @@ function User({
             size="sm"
             w="100%"
             leftIcon={<FaPalette />}
+						_hover={{bg: darkMode ? "#464647" : "gray.200"}}
             bg={darkMode ? "#464647" : "gray.200"}
             onClick={onChangeColor}
           >
