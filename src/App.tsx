@@ -203,12 +203,21 @@ function App() {
           </Heading>
           <Select
             size="sm"
-            bgColor="white"
+            bgColor={darkMode ? "#3c3c3c" : "white"}
+            borderColor={darkMode ? "#3c3c3c" : "white"}
+            color={darkMode ? "#cbcaca" : undefined}
             value={language}
             onChange={(event) => handleChangeLanguage(event.target.value)}
           >
             {languages.map((lang) => (
-              <option key={lang} value={lang}>
+              <option
+                key={lang}
+                value={lang}
+                style={{
+                  backgroundColor: darkMode ? "#3c3c3c" : "white",
+                  color: darkMode ? "#cbcaca" : undefined,
+                }}
+              >
                 {lang}
               </option>
             ))}
@@ -227,11 +236,20 @@ function App() {
               readOnly
               pr="3.5rem"
               variant="outline"
-              bgColor="white"
+              bgColor={darkMode ? "#3c3c3c" : "white"}
+              borderColor={darkMode ? "#3c3c3c" : "white"}
+              color={darkMode ? "#cbcaca" : undefined}
               value={`${window.location.origin}/#${id}`}
             />
             <InputRightElement width="3.5rem">
-              <Button h="1.4rem" size="xs" onClick={handleCopy}>
+              <Button
+                h="1.4rem"
+                size="xs"
+                onClick={handleCopy}
+                _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
+                bg={darkMode ? "#575759" : "gray.200"}
+								color={darkMode ? "#cbcaca" : undefined}
+              >
                 Copy
               </Button>
             </InputRightElement>
