@@ -248,7 +248,7 @@ function App() {
                 onClick={handleCopy}
                 _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
                 bg={darkMode ? "#575759" : "gray.200"}
-								color={darkMode ? "#cbcaca" : undefined}
+                color={darkMode ? "#cbcaca" : undefined}
               >
                 Copy
               </Button>
@@ -307,7 +307,8 @@ function App() {
 
           <Button
             size="sm"
-            colorScheme="purple"
+            borderColor={darkMode ? "purple.400" : "purple.600"}
+            color={darkMode ? "purple.400" : "purple.600"}
             variant="outline"
             leftIcon={<VscRepoPull />}
             mt={1}
