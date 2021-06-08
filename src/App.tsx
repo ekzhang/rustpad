@@ -163,11 +163,17 @@ function App() {
   }
 
   return (
-    <Flex direction="column" h="100vh" overflow="hidden">
+    <Flex
+      direction="column"
+      h="100vh"
+      overflow="hidden"
+      bgColor={darkMode ? "#1e1e1e" : "white"}
+      color={darkMode ? "#cbcaca" : "inherit"}
+    >
       <Box
         flexShrink={0}
         bgColor={darkMode ? "#333333" : "#e8e8e8"}
-        color={darkMode ? "#cbcaca" : "#383838"}
+        color={darkMode ? "#cccccc" : "#383838"}
         textAlign="center"
         fontSize="sm"
         py={0.5}
@@ -186,49 +192,28 @@ function App() {
           <ConnectionStatus darkMode={darkMode} connection={connection} />
 
           <Flex justifyContent="space-between" mt={4} mb={1.5} w="full">
-            <Heading color={darkMode ? "#cbcaca" : undefined} size="sm">
-              Dark Mode
-            </Heading>
-
+            <Heading size="sm">Dark Mode</Heading>
             <Switch isChecked={darkMode} onChange={handleDarkMode} />
           </Flex>
 
-          <Heading
-            color={darkMode ? "#cbcaca" : undefined}
-            mt={4}
-            mb={1.5}
-            size="sm"
-          >
+          <Heading mt={4} mb={1.5} size="sm">
             Language
           </Heading>
           <Select
             size="sm"
             bgColor={darkMode ? "#3c3c3c" : "white"}
             borderColor={darkMode ? "#3c3c3c" : "white"}
-            color={darkMode ? "#cbcaca" : undefined}
             value={language}
             onChange={(event) => handleChangeLanguage(event.target.value)}
           >
             {languages.map((lang) => (
-              <option
-                key={lang}
-                value={lang}
-                style={{
-                  backgroundColor: darkMode ? "#3c3c3c" : "white",
-                  color: darkMode ? "#cbcaca" : undefined,
-                }}
-              >
+              <option key={lang} value={lang}>
                 {lang}
               </option>
             ))}
           </Select>
 
-          <Heading
-            color={darkMode ? "#cbcaca" : undefined}
-            mt={4}
-            mb={1.5}
-            size="sm"
-          >
+          <Heading mt={4} mb={1.5} size="sm">
             Share Link
           </Heading>
           <InputGroup size="sm">
@@ -238,7 +223,6 @@ function App() {
               variant="outline"
               bgColor={darkMode ? "#3c3c3c" : "white"}
               borderColor={darkMode ? "#3c3c3c" : "white"}
-              color={darkMode ? "#cbcaca" : undefined}
               value={`${window.location.origin}/#${id}`}
             />
             <InputRightElement width="3.5rem">
@@ -247,20 +231,14 @@ function App() {
                 size="xs"
                 onClick={handleCopy}
                 _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
-                bg={darkMode ? "#575759" : "gray.200"}
-                color={darkMode ? "#cbcaca" : undefined}
+                bgColor={darkMode ? "#575759" : "gray.200"}
               >
                 Copy
               </Button>
             </InputRightElement>
           </InputGroup>
 
-          <Heading
-            color={darkMode ? "#cbcaca" : undefined}
-            mt={4}
-            mb={1.5}
-            size="sm"
-          >
+          <Heading mt={4} mb={1.5} size="sm">
             Active Users
           </Heading>
           <Stack spacing={0} mb={1.5} fontSize="sm">
@@ -276,23 +254,18 @@ function App() {
             ))}
           </Stack>
 
-          <Heading
-            color={darkMode ? "#cbcaca" : undefined}
-            mt={4}
-            mb={1.5}
-            size="sm"
-          >
+          <Heading mt={4} mb={1.5} size="sm">
             About
           </Heading>
-          <Text color={darkMode ? "#cbcaca" : undefined} fontSize="sm" mb={1.5}>
+          <Text fontSize="sm" mb={1.5}>
             <strong>Rustpad</strong> is an open-source collaborative text editor
             based on the <em>operational transformation</em> algorithm.
           </Text>
-          <Text color={darkMode ? "#cbcaca" : undefined} fontSize="sm" mb={1.5}>
+          <Text fontSize="sm" mb={1.5}>
             Share a link to this pad with others, and they can edit from their
             browser while seeing your changes in real time.
           </Text>
-          <Text color={darkMode ? "#cbcaca" : undefined} fontSize="sm" mb={1.5}>
+          <Text fontSize="sm" mb={1.5}>
             Built using Rust and TypeScript. See the{" "}
             <Link
               color="blue.600"
@@ -307,6 +280,7 @@ function App() {
 
           <Button
             size="sm"
+            colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
             borderColor={darkMode ? "purple.400" : "purple.600"}
             color={darkMode ? "purple.400" : "purple.600"}
             variant="outline"
@@ -321,17 +295,16 @@ function App() {
           <HStack
             h={6}
             spacing={1}
-            color={darkMode ? "#cbcaca" : "gray.400"}
-            backgroundColor={darkMode ? "#1e1e1e" : "#fffffe"}
+            color="#888888"
             fontWeight="medium"
             fontSize="13px"
             px={3.5}
             flexShrink={0}
           >
-            <Icon as={VscFolderOpened} fontSize="md" color="blue.600" />
+            <Icon as={VscFolderOpened} fontSize="md" color="blue.500" />
             <Text>documents</Text>
             <Icon as={VscChevronRight} fontSize="md" />
-            <Icon as={VscGist} fontSize="md" color="purple.600" />
+            <Icon as={VscGist} fontSize="md" color="purple.500" />
             <Text>{id}</Text>
           </HStack>
           <Box flex={1} minH={0}>

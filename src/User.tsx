@@ -56,16 +56,15 @@ function User({
           }}
           onClick={() => isMe && onOpen()}
         >
-          <Icon color={darkMode ? "#cbcaca" : undefined} as={VscAccount} />
+          <Icon as={VscAccount} />
           <Text fontWeight="medium" color={nameColor}>
             {info.name}
           </Text>
-          {isMe && <Text color={darkMode ? "#cbcaca" : undefined}>(you)</Text>}
+          {isMe && <Text>(you)</Text>}
         </HStack>
       </PopoverTrigger>
       <PopoverContent
-        bg={darkMode ? "#333333" : "white"}
-        color={darkMode ? "#cbcaca" : undefined}
+        bgColor={darkMode ? "#333333" : "white"}
         borderColor={darkMode ? "#464647" : "gray.200"}
       >
         <PopoverHeader
@@ -74,7 +73,7 @@ function User({
         >
           Update Info
         </PopoverHeader>
-        <PopoverArrow bg={darkMode ? "#333333" : "white"} />
+        <PopoverArrow bgColor={darkMode ? "#333333" : "white"} />
         <PopoverCloseButton />
         <PopoverBody borderColor={darkMode ? "#464647" : "gray.200"}>
           <Input
@@ -88,8 +87,7 @@ function User({
             size="sm"
             w="100%"
             leftIcon={<FaPalette />}
-						_hover={{bg: darkMode ? "#464647" : "gray.200"}}
-            bg={darkMode ? "#464647" : "gray.200"}
+            colorScheme={darkMode ? "whiteAlpha" : "gray"}
             onClick={onChangeColor}
           >
             Change Color
