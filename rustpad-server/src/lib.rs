@@ -3,11 +3,13 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
+use std::time::{Duration, SystemTime};
 
 use dashmap::DashMap;
 use log::info;
 use rustpad::Rustpad;
+use serde::Serialize;
 use tokio::time::{self, Instant};
 use warp::{filters::BoxedFilter, ws::Ws, Filter, Reply};
 
@@ -31,6 +33,15 @@ impl Default for Document {
             rustpad: Default::default(),
         }
     }
+}
+
+/// Statistics about the server, returned from an API endpoint.
+#[derive(Serialize)]
+struct Stats {
+    /// System time when the server started, in seconds since Unix epoch.
+    start_time: u64,
+    /// Number of documents currently tracked by the server.
+    num_documents: usize,
 }
 
 /// A combined filter handling all server routes.
@@ -76,7 +87,22 @@ fn backend() -> BoxedFilter<(impl Reply,)> {
                 .unwrap_or_default()
         });
 
-    socket.or(text).boxed()
+    let start_time = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .expect("SystemTime returned before UNIX_EPOCH")
+        .as_secs();
+    let stats = warp::path("stats")
+        .and(warp::path::end())
+        .and(state_filter.clone())
+        .map(move |state: Arc<DashMap<String, Document>>| {
+            let num_documents = state.len();
+            warp::reply::json(&Stats {
+                start_time,
+                num_documents,
+            })
+        });
+
+    socket.or(text).or(stats).boxed()
 }
 
 const HOUR: Duration = Duration::from_secs(3600);
