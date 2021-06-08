@@ -14,6 +14,7 @@ import {
   Link,
   Select,
   Stack,
+  Switch,
   Text,
   useToast,
 } from "@chakra-ui/react";
@@ -62,6 +63,7 @@ function App() {
   const [name, setName] = useStorage("name", generateName);
   const [hue, setHue] = useStorage("hue", generateHue);
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
+  const [darkMode, setDarkMode] = useStorage("darkMode", () => false);
   const rustpad = useRef<Rustpad>();
   const id = useHash();
 
@@ -156,12 +158,22 @@ function App() {
     }
   }
 
+  function handleDarkMode() {
+    setDarkMode(!darkMode);
+  }
+
   return (
-    <Flex direction="column" h="100vh" overflow="hidden">
+    <Flex
+      direction="column"
+      h="100vh"
+      overflow="hidden"
+      bgColor={darkMode ? "#1e1e1e" : "white"}
+      color={darkMode ? "#cbcaca" : "inherit"}
+    >
       <Box
         flexShrink={0}
-        bgColor="#e8e8e8"
-        color="#383838"
+        bgColor={darkMode ? "#333333" : "#e8e8e8"}
+        color={darkMode ? "#cccccc" : "#383838"}
         textAlign="center"
         fontSize="sm"
         py={0.5}
@@ -171,20 +183,26 @@ function App() {
       <Flex flex="1 0" minH={0}>
         <Container
           w="xs"
-          bgColor="#f3f3f3"
+          bgColor={darkMode ? "#252526" : "#f3f3f3"}
           overflowY="auto"
           maxW="full"
           lineHeight={1.4}
           py={4}
         >
-          <ConnectionStatus connection={connection} />
+          <ConnectionStatus darkMode={darkMode} connection={connection} />
+
+          <Flex justifyContent="space-between" mt={4} mb={1.5} w="full">
+            <Heading size="sm">Dark Mode</Heading>
+            <Switch isChecked={darkMode} onChange={handleDarkMode} />
+          </Flex>
 
           <Heading mt={4} mb={1.5} size="sm">
             Language
           </Heading>
           <Select
             size="sm"
-            bgColor="white"
+            bgColor={darkMode ? "#3c3c3c" : "white"}
+            borderColor={darkMode ? "#3c3c3c" : "white"}
             value={language}
             onChange={(event) => handleChangeLanguage(event.target.value)}
           >
@@ -203,11 +221,18 @@ function App() {
               readOnly
               pr="3.5rem"
               variant="outline"
-              bgColor="white"
+              bgColor={darkMode ? "#3c3c3c" : "white"}
+              borderColor={darkMode ? "#3c3c3c" : "white"}
               value={`${window.location.origin}/#${id}`}
             />
             <InputRightElement width="3.5rem">
-              <Button h="1.4rem" size="xs" onClick={handleCopy}>
+              <Button
+                h="1.4rem"
+                size="xs"
+                onClick={handleCopy}
+                _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
+                bgColor={darkMode ? "#575759" : "gray.200"}
+              >
                 Copy
               </Button>
             </InputRightElement>
@@ -222,9 +247,10 @@ function App() {
               isMe
               onChangeName={(name) => name.length > 0 && setName(name)}
               onChangeColor={() => setHue(generateHue())}
+              darkMode={darkMode}
             />
             {Object.entries(users).map(([id, info]) => (
-              <User key={id} info={info} />
+              <User key={id} info={info} darkMode={darkMode} />
             ))}
           </Stack>
 
@@ -254,7 +280,9 @@ function App() {
 
           <Button
             size="sm"
-            colorScheme="purple"
+            colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
+            borderColor={darkMode ? "purple.400" : "purple.600"}
+            color={darkMode ? "purple.400" : "purple.600"}
             variant="outline"
             leftIcon={<VscRepoPull />}
             mt={1}
@@ -267,21 +295,21 @@ function App() {
           <HStack
             h={6}
             spacing={1}
-            color="gray.500"
+            color="#888888"
             fontWeight="medium"
             fontSize="13px"
             px={3.5}
             flexShrink={0}
           >
-            <Icon as={VscFolderOpened} fontSize="md" color="blue.600" />
+            <Icon as={VscFolderOpened} fontSize="md" color="blue.500" />
             <Text>documents</Text>
             <Icon as={VscChevronRight} fontSize="md" />
-            <Icon as={VscGist} fontSize="md" color="purple.600" />
+            <Icon as={VscGist} fontSize="md" color="purple.500" />
             <Text>{id}</Text>
           </HStack>
           <Box flex={1} minH={0}>
             <Editor
-              theme="vs"
+              theme={darkMode ? "vs-dark" : "vs"}
               language={language}
               options={{
                 automaticLayout: true,

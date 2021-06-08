@@ -25,13 +25,20 @@ type UserProps = {
   isMe?: boolean;
   onChangeName?: (name: string) => unknown;
   onChangeColor?: () => unknown;
+  darkMode: boolean;
 };
 
-function User({ info, isMe = false, onChangeName, onChangeColor }: UserProps) {
+function User({
+  info,
+  isMe = false,
+  onChangeName,
+  onChangeColor,
+  darkMode,
+}: UserProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const nameColor = `hsl(${info.hue}, 90%, 25%)`;
+  const nameColor = `hsl(${info.hue}, 90%, ${darkMode ? "70%" : "25%"})`;
   return (
     <Popover
       placement="right"
@@ -43,7 +50,10 @@ function User({ info, isMe = false, onChangeName, onChangeColor }: UserProps) {
         <HStack
           p={2}
           rounded="md"
-          _hover={{ bgColor: "gray.200", cursor: "pointer" }}
+          _hover={{
+            bgColor: darkMode ? "#464647" : "gray.200",
+            cursor: "pointer",
+          }}
           onClick={() => isMe && onOpen()}
         >
           <Icon as={VscAccount} />
@@ -53,11 +63,19 @@ function User({ info, isMe = false, onChangeName, onChangeColor }: UserProps) {
           {isMe && <Text>(you)</Text>}
         </HStack>
       </PopoverTrigger>
-      <PopoverContent>
-        <PopoverHeader fontWeight="semibold">Update Info</PopoverHeader>
-        <PopoverArrow />
+      <PopoverContent
+        bgColor={darkMode ? "#333333" : "white"}
+        borderColor={darkMode ? "#464647" : "gray.200"}
+      >
+        <PopoverHeader
+          fontWeight="semibold"
+          borderColor={darkMode ? "#464647" : "gray.200"}
+        >
+          Update Info
+        </PopoverHeader>
+        <PopoverArrow bgColor={darkMode ? "#333333" : "white"} />
         <PopoverCloseButton />
-        <PopoverBody>
+        <PopoverBody borderColor={darkMode ? "#464647" : "gray.200"}>
           <Input
             ref={inputRef}
             mb={2}
@@ -69,12 +87,17 @@ function User({ info, isMe = false, onChangeName, onChangeColor }: UserProps) {
             size="sm"
             w="100%"
             leftIcon={<FaPalette />}
+            colorScheme={darkMode ? "whiteAlpha" : "gray"}
             onClick={onChangeColor}
           >
             Change Color
           </Button>
         </PopoverBody>
-        <PopoverFooter d="flex" justifyContent="flex-end">
+        <PopoverFooter
+          d="flex"
+          justifyContent="flex-end"
+          borderColor={darkMode ? "#464647" : "gray.200"}
+        >
           <ButtonGroup size="sm">
             <Button colorScheme="blue" onClick={onClose}>
               Done
