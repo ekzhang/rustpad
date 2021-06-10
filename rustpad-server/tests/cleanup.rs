@@ -14,7 +14,10 @@ pub mod common;
 #[tokio::test]
 async fn test_cleanup() -> Result<()> {
     pretty_env_logger::try_init().ok();
-    let filter = server(ServerData::default());
+    let filter = server(ServerData {
+        expiry_days: 2,
+        ..ServerData::default()
+    });
 
     expect_text(&filter, "old", "").await;
 
@@ -39,7 +42,7 @@ async fn test_cleanup() -> Result<()> {
 
     let hour = Duration::from_secs(3600);
     time::pause();
-    time::advance(23 * hour).await;
+    time::advance(46 * hour).await;
     expect_text(&filter, "old", "hello").await;
 
     time::advance(3 * hour).await;
