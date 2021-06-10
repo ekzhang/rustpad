@@ -51,6 +51,12 @@ pub struct ServerData {
     pub expiry_days: u32,
 }
 
+impl Default for ServerData {
+    fn default() -> Self {
+        Self { expiry_days: 1 }
+    }
+}
+
 /// A combined filter handling all server routes.
 pub fn server(data: ServerData) -> BoxedFilter<(impl Reply,)> {
     warp::path("api").and(backend(data)).or(frontend()).boxed()
