@@ -44,9 +44,16 @@ struct Stats {
     num_documents: usize,
 }
 
+/// Data that will be used to configure the server.
+#[derive(Debug)]
+pub struct ServerData {
+    /// Number of days to clean up documents after inactivity.
+    pub expiry_days: u32,
+}
+
 /// A combined filter handling all server routes.
-pub fn server() -> BoxedFilter<(impl Reply,)> {
-    warp::path("api").and(backend()).or(frontend()).boxed()
+pub fn server(data: ServerData) -> BoxedFilter<(impl Reply,)> {
+    warp::path("api").and(backend(data)).or(frontend()).boxed()
 }
 
 /// Construct routes for static files from React.
@@ -55,9 +62,9 @@ fn frontend() -> BoxedFilter<(impl Reply,)> {
 }
 
 /// Construct backend routes, including WebSocket handlers.
-fn backend() -> BoxedFilter<(impl Reply,)> {
+fn backend(data: ServerData) -> BoxedFilter<(impl Reply,)> {
     let state: Arc<DashMap<String, Document>> = Default::default();
-    tokio::spawn(cleaner(Arc::clone(&state)));
+    tokio::spawn(cleaner(Arc::clone(&state), Arc::new(data.expiry_days)));
 
     let state_filter = warp::any().map(move || Arc::clone(&state));
 
@@ -106,15 +113,14 @@ fn backend() -> BoxedFilter<(impl Reply,)> {
 }
 
 const HOUR: Duration = Duration::from_secs(3600);
-const DAY: Duration = Duration::from_secs(24 * 3600);
 
-// Reclaims memory for documents after a day of inactivity.
-async fn cleaner(state: Arc<DashMap<String, Document>>) {
+// Reclaims memory for documents.
+async fn cleaner(state: Arc<DashMap<String, Document>>, expiry_days: Arc<u32>) {
     loop {
         time::sleep(HOUR).await;
         let mut keys = Vec::new();
         for entry in &*state {
-            if entry.last_accessed.elapsed() > DAY {
+            if entry.last_accessed.elapsed() > HOUR * 24 * *expiry_days {
                 keys.push(entry.key().clone());
             }
         }
