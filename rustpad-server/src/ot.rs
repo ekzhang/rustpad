@@ -9,7 +9,7 @@ pub fn transform_index(operation: &OperationSeq, position: u32) -> u32 {
     for op in operation.ops() {
         match op {
             &Operation::Retain(n) => index -= n as i32,
-            Operation::Insert(s) => new_index += s.len() as i32,
+            Operation::Insert(s) => new_index += bytecount::num_chars(s.as_bytes()) as i32,
             &Operation::Delete(n) => {
                 new_index -= std::cmp::min(index, n as i32);
                 index -= n as i32;

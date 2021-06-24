@@ -853,6 +853,7 @@ name = "rustpad-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytecount",
  "dashmap",
  "dotenv",
  "futures",
@@ -871,6 +872,7 @@ dependencies = [
 name = "rustpad-wasm"
 version = "0.1.0"
 dependencies = [
+ "bytecount",
  "console_error_panic_hook",
  "js-sys",
  "operational-transform",
