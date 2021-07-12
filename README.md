@@ -89,6 +89,15 @@ docker run --rm -dp 3030:3030 ekzhang/rustpad
 We deploy a public instance of this image using
 [DigitalOcean App Platform](https://www.digitalocean.com/products/app-platform/).
 
+## In the media
+
+- **July 11, 2021:** Featured in
+  [Console 61 - The open-source newsletter](https://console.substack.com/p/console-61).
+- **June 5, 2021:** Front-page
+  [Hacker News post](https://news.ycombinator.com/item?id=27408326). Reddit
+  discussions in [r/rust](https://www.reddit.com/r/rust/comments/nt4p9f/) and
+  [r/programming](https://www.reddit.com/r/programming/comments/nt4ws7/).
+
 <br>
 
 <sup>
