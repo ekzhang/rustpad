@@ -207,7 +207,7 @@ function App() {
             onChange={(event) => handleChangeLanguage(event.target.value)}
           >
             {languages.map((lang) => (
-              <option key={lang} value={lang}>
+              <option key={lang} value={lang} style={{ color: "black" }}>
                 {lang}
               </option>
             ))}

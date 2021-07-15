@@ -141,7 +141,7 @@ impl OpSeq {
             use operational_transform::Operation::*;
             match op {
                 &Retain(n) => index -= n as i32,
-                Insert(s) => new_index += s.len() as i32,
+                Insert(s) => new_index += bytecount::num_chars(s.as_bytes()) as i32,
                 &Delete(n) => {
                     new_index -= std::cmp::min(index, n as i32);
                     index -= n as i32;

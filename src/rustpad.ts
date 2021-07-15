@@ -2,6 +2,7 @@ import { OpSeq } from "rustpad-wasm";
 import type {
   editor,
   IDisposable,
+  IPosition,
 } from "monaco-editor/esm/vs/editor/editor.api";
 
 /** Options passed in to the Rustpad constructor. */
@@ -260,8 +261,8 @@ class Rustpad {
     for (const op of ops) {
       if (typeof op === "string") {
         // Insert
-        const pos = this.model.getPositionAt(index);
-        index += op.length;
+        const pos = unicodePosition(this.model, index);
+        index += unicodeLength(op);
         this.model.pushEditOperations(
           this.options.editor.getSelections(),
           [
@@ -284,8 +285,8 @@ class Rustpad {
       } else {
         // Delete
         const chars = -op;
-        var from = this.model.getPositionAt(index);
-        var to = this.model.getPositionAt(index + chars);
+        var from = unicodePosition(this.model, index);
+        var to = unicodePosition(this.model, index + chars);
         this.model.pushEditOperations(
           this.options.editor.getSelections(),
           [
@@ -331,7 +332,7 @@ class Rustpad {
         generateCssStyles(hue);
 
         for (const cursor of data.cursors) {
-          const position = this.model.getPositionAt(cursor);
+          const position = unicodePosition(this.model, cursor);
           decorations.push({
             options: {
               className: `remote-cursor-${hue}`,
@@ -347,8 +348,8 @@ class Rustpad {
           });
         }
         for (const selection of data.selections) {
-          const position = this.model.getPositionAt(selection[0]);
-          const positionEnd = this.model.getPositionAt(selection[1]);
+          const position = unicodePosition(this.model, selection[0]);
+          const positionEnd = unicodePosition(this.model, selection[1]);
           decorations.push({
             options: {
               className: `remote-selection-${hue}`,
@@ -378,17 +379,26 @@ class Rustpad {
   private onChange(event: editor.IModelContentChangedEvent) {
     if (!this.ignoreChanges) {
       const content = this.lastValue;
+      const contentLength = unicodeLength(content);
       let offset = 0;
 
       let operation = OpSeq.new();
-      operation.retain(content.length);
+      operation.retain(contentLength);
       event.changes.sort((a, b) => b.rangeOffset - a.rangeOffset);
       for (const change of event.changes) {
+        // The following dance is necessary to convert from UTF-16 indices (evil
+        // encoding-dependent JavaScript representation) to portable Unicode
+        // codepoint indices.
         const { text, rangeOffset, rangeLength } = change;
-        const restLength = content.length + offset - rangeOffset - rangeLength;
+        const initialLength = unicodeLength(content.slice(0, rangeOffset));
+        const deletedLength = unicodeLength(
+          content.slice(rangeOffset, rangeOffset + rangeLength)
+        );
+        const restLength =
+          contentLength + offset - initialLength - deletedLength;
         const changeOp = OpSeq.new();
-        changeOp.retain(rangeOffset);
-        changeOp.delete(rangeLength);
+        changeOp.retain(initialLength);
+        changeOp.delete(deletedLength);
         changeOp.insert(text);
         changeOp.retain(restLength);
         operation = operation.compose(changeOp)!;
@@ -401,15 +411,15 @@ class Rustpad {
 
   private onCursor(event: editor.ICursorPositionChangedEvent) {
     const cursors = [event.position, ...event.secondaryPositions];
-    this.cursorData.cursors = cursors.map((p) => this.model.getOffsetAt(p));
+    this.cursorData.cursors = cursors.map((p) => unicodeOffset(this.model, p));
     this.sendCursorData();
   }
 
   private onSelection(event: editor.ICursorSelectionChangedEvent) {
     const selections = [event.selection, ...event.secondarySelections];
     this.cursorData.selections = selections.map((s) => [
-      this.model.getOffsetAt(s.getStartPosition()),
-      this.model.getOffsetAt(s.getEndPosition()),
+      unicodeOffset(this.model, s.getStartPosition()),
+      unicodeOffset(this.model, s.getEndPosition()),
     ]);
     this.sendCursorData();
   }
@@ -441,6 +451,34 @@ type ServerMsg = {
     data: CursorData;
   };
 };
+
+/** Returns the number of Unicode codepoints in a string. */
+function unicodeLength(str: string): number {
+  let length = 0;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  for (const c of str) ++length;
+  return length;
+}
+
+/** Returns the number of Unicode codepoints before a position in the model. */
+function unicodeOffset(model: editor.ITextModel, pos: IPosition): number {
+  const value = model.getValue();
+  const offsetUTF16 = model.getOffsetAt(pos);
+  return unicodeLength(value.slice(0, offsetUTF16));
+}
+
+/** Returns the position after a certain number of Unicode codepoints. */
+function unicodePosition(model: editor.ITextModel, offset: number): IPosition {
+  const value = model.getValue();
+  let offsetUTF16 = 0;
+  for (const c of value) {
+    // Iterate over Unicode codepoints
+    if (offset <= 0) break;
+    offsetUTF16 += c.length;
+    offset -= 1;
+  }
+  return model.getPositionAt(offsetUTF16);
+}
 
 /** Cache for private use by `generateCssStyles()`. */
 const generatedStyles = new Set<number>();
