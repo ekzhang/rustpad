@@ -42,7 +42,7 @@ async fn test_cleanup() -> Result<()> {
 
     let hour = Duration::from_secs(3600);
     time::pause();
-    time::advance(46 * hour).await;
+    time::advance(47 * hour).await;
     expect_text(&filter, "old", "hello").await;
 
     time::advance(3 * hour).await;
