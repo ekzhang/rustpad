@@ -44,22 +44,25 @@ struct Stats {
     num_documents: usize,
 }
 
-/// Data that will be used to configure the server.
+/// Server configuration.
 #[derive(Debug)]
-pub struct ServerData {
+pub struct ServerConfig {
     /// Number of days to clean up documents after inactivity.
     pub expiry_days: u32,
 }
 
-impl Default for ServerData {
+impl Default for ServerConfig {
     fn default() -> Self {
         Self { expiry_days: 1 }
     }
 }
 
 /// A combined filter handling all server routes.
-pub fn server(data: ServerData) -> BoxedFilter<(impl Reply,)> {
-    warp::path("api").and(backend(data)).or(frontend()).boxed()
+pub fn server(config: ServerConfig) -> BoxedFilter<(impl Reply,)> {
+    warp::path("api")
+        .and(backend(config))
+        .or(frontend())
+        .boxed()
 }
 
 /// Construct routes for static files from React.
@@ -68,9 +71,9 @@ fn frontend() -> BoxedFilter<(impl Reply,)> {
 }
 
 /// Construct backend routes, including WebSocket handlers.
-fn backend(data: ServerData) -> BoxedFilter<(impl Reply,)> {
+fn backend(config: ServerConfig) -> BoxedFilter<(impl Reply,)> {
     let state: Arc<DashMap<String, Document>> = Default::default();
-    tokio::spawn(cleaner(Arc::clone(&state), data.expiry_days));
+    tokio::spawn(cleaner(Arc::clone(&state), config.expiry_days));
 
     let state_filter = warp::any().map(move || Arc::clone(&state));
 
