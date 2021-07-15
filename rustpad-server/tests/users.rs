@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 use common::*;
-use rustpad_server::{server, ServerData};
+use rustpad_server::{server, ServerConfig};
 use serde_json::json;
 
 pub mod common;
@@ -10,7 +10,7 @@ pub mod common;
 #[tokio::test]
 async fn test_two_users() -> Result<()> {
     pretty_env_logger::try_init().ok();
-    let filter = server(ServerData::default());
+    let filter = server(ServerConfig::default());
 
     let mut client = connect(&filter, "foobar").await?;
     assert_eq!(client.recv().await?, json!({ "Identity": 0 }));
@@ -54,7 +54,7 @@ async fn test_two_users() -> Result<()> {
 #[tokio::test]
 async fn test_invalid_user() -> Result<()> {
     pretty_env_logger::try_init().ok();
-    let filter = server(ServerData::default());
+    let filter = server(ServerConfig::default());
 
     let mut client = connect(&filter, "foobar").await?;
     assert_eq!(client.recv().await?, json!({ "Identity": 0 }));
@@ -69,7 +69,7 @@ async fn test_invalid_user() -> Result<()> {
 #[tokio::test]
 async fn test_leave_rejoin() -> Result<()> {
     pretty_env_logger::try_init().ok();
-    let filter = server(ServerData::default());
+    let filter = server(ServerConfig::default());
 
     let mut client = connect(&filter, "foobar").await?;
     assert_eq!(client.recv().await?, json!({ "Identity": 0 }));
@@ -114,7 +114,7 @@ async fn test_leave_rejoin() -> Result<()> {
 #[tokio::test]
 async fn test_cursors() -> Result<()> {
     pretty_env_logger::try_init().ok();
-    let filter = server(ServerData::default());
+    let filter = server(ServerConfig::default());
 
     let mut client = connect(&filter, "foobar").await?;
     assert_eq!(client.recv().await?, json!({ "Identity": 0 }));
