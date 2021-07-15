@@ -5,7 +5,7 @@ use std::time::Duration;
 use anyhow::Result;
 use common::*;
 use operational_transform::OperationSeq;
-use rustpad_server::server;
+use rustpad_server::{server, ServerConfig};
 use serde_json::json;
 use tokio::time;
 
@@ -14,7 +14,10 @@ pub mod common;
 #[tokio::test]
 async fn test_cleanup() -> Result<()> {
     pretty_env_logger::try_init().ok();
-    let filter = server();
+    let filter = server(ServerConfig {
+        expiry_days: 2,
+        ..ServerConfig::default()
+    });
 
     expect_text(&filter, "old", "").await;
 
@@ -39,7 +42,7 @@ async fn test_cleanup() -> Result<()> {
 
     let hour = Duration::from_secs(3600);
     time::pause();
-    time::advance(23 * hour).await;
+    time::advance(47 * hour).await;
     expect_text(&filter, "old", "hello").await;
 
     time::advance(3 * hour).await;

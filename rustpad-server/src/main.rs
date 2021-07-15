@@ -1,4 +1,4 @@
-use rustpad_server::server;
+use rustpad_server::{server, ServerConfig};
 
 #[tokio::main]
 async fn main() {
@@ -10,5 +10,12 @@ async fn main() {
         .parse()
         .expect("Unable to parse PORT");
 
-    warp::serve(server()).run(([0, 0, 0, 0], port)).await;
+    let config = ServerConfig {
+        expiry_days: std::env::var("EXPIRY_DAYS")
+            .unwrap_or_else(|_| String::from("1"))
+            .parse()
+            .expect("Unable to parse EXPIRY_DAYS"),
+    };
+
+    warp::serve(server(config)).run(([0, 0, 0, 0], port)).await;
 }
