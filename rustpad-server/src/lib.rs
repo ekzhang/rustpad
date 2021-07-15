@@ -70,7 +70,7 @@ fn frontend() -> BoxedFilter<(impl Reply,)> {
 /// Construct backend routes, including WebSocket handlers.
 fn backend(data: ServerData) -> BoxedFilter<(impl Reply,)> {
     let state: Arc<DashMap<String, Document>> = Default::default();
-    tokio::spawn(cleaner(Arc::clone(&state), Arc::new(data.expiry_days)));
+    tokio::spawn(cleaner(Arc::clone(&state), data.expiry_days));
 
     let state_filter = warp::any().map(move || Arc::clone(&state));
 
@@ -121,12 +121,12 @@ fn backend(data: ServerData) -> BoxedFilter<(impl Reply,)> {
 const HOUR: Duration = Duration::from_secs(3600);
 
 // Reclaims memory for documents.
-async fn cleaner(state: Arc<DashMap<String, Document>>, expiry_days: Arc<u32>) {
+async fn cleaner(state: Arc<DashMap<String, Document>>, expiry_days: u32) {
     loop {
         time::sleep(HOUR).await;
         let mut keys = Vec::new();
         for entry in &*state {
-            if entry.last_accessed.elapsed() > HOUR * 24 * *expiry_days {
+            if entry.last_accessed.elapsed() > HOUR * 24 * expiry_days {
                 keys.push(entry.key().clone());
             }
         }
