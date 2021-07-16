@@ -6,13 +6,13 @@ use anyhow::Result;
 use common::*;
 use log::info;
 use operational_transform::OperationSeq;
-use rustpad_server::server;
+use rustpad_server::{server, ServerConfig};
 use serde_json::json;
 
 #[tokio::test]
 async fn test_unicode_length() -> Result<()> {
     pretty_env_logger::try_init().ok();
-    let filter = server();
+    let filter = server(ServerConfig::default());
 
     expect_text(&filter, "unicode", "").await;
 
@@ -77,7 +77,7 @@ async fn test_unicode_length() -> Result<()> {
 #[tokio::test]
 async fn test_multiple_operations() -> Result<()> {
     pretty_env_logger::try_init().ok();
-    let filter = server();
+    let filter = server(ServerConfig::default());
 
     expect_text(&filter, "unicode", "").await;
 
@@ -172,7 +172,7 @@ async fn test_multiple_operations() -> Result<()> {
 #[tokio::test]
 async fn test_unicode_cursors() -> Result<()> {
     pretty_env_logger::try_init().ok();
-    let filter = server();
+    let filter = server(ServerConfig::default());
 
     let mut client = connect(&filter, "unicode").await?;
     assert_eq!(client.recv().await?, json!({ "Identity": 0 }));

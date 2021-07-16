@@ -8,10 +8,11 @@ use std::time::{Duration, SystemTime};
 
 use dashmap::DashMap;
 use log::info;
-use rustpad::Rustpad;
 use serde::Serialize;
 use tokio::time::{self, Instant};
 use warp::{filters::BoxedFilter, ws::Ws, Filter, Reply};
+
+use rustpad::Rustpad;
 
 mod ot;
 mod rustpad;
