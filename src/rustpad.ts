@@ -4,6 +4,7 @@ import type {
   IDisposable,
   IPosition,
 } from "monaco-editor/esm/vs/editor/editor.api";
+import debounce from "lodash.debounce";
 
 /** Options passed in to the Rustpad constructor. */
 export type RustpadOptions = {
@@ -56,12 +57,15 @@ class Rustpad {
     this.onChangeHandle = options.editor.onDidChangeModelContent((e) =>
       this.onChange(e)
     );
-    this.onCursorHandle = options.editor.onDidChangeCursorPosition((e) =>
-      this.onCursor(e)
-    );
-    this.onSelectionHandle = options.editor.onDidChangeCursorSelection((e) =>
-      this.onSelection(e)
-    );
+    const cursorUpdate = debounce(() => this.sendCursorData(), 20);
+    this.onCursorHandle = options.editor.onDidChangeCursorPosition((e) => {
+      this.onCursor(e);
+      cursorUpdate();
+    });
+    this.onSelectionHandle = options.editor.onDidChangeCursorSelection((e) => {
+      this.onSelection(e);
+      cursorUpdate();
+    });
     this.beforeUnload = (event: BeforeUnloadEvent) => {
       if (this.outstanding) {
         event.preventDefault();
@@ -412,7 +416,6 @@ class Rustpad {
   private onCursor(event: editor.ICursorPositionChangedEvent) {
     const cursors = [event.position, ...event.secondaryPositions];
     this.cursorData.cursors = cursors.map((p) => unicodeOffset(this.model, p));
-    this.sendCursorData();
   }
 
   private onSelection(event: editor.ICursorSelectionChangedEvent) {
@@ -421,7 +424,6 @@ class Rustpad {
       unicodeOffset(this.model, s.getStartPosition()),
       unicodeOffset(this.model, s.getEndPosition()),
     ]);
-    this.sendCursorData();
   }
 }
 
