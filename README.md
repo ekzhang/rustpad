@@ -1,5 +1,9 @@
 # Rustpad
 
+[![Docker Pulls](https://img.shields.io/docker/pulls/ekzhang/rustpad)](https://hub.docker.com/r/ekzhang/rustpad/)
+[![Docker Image Size](https://img.shields.io/docker/image-size/ekzhang/rustpad/latest)](https://hub.docker.com/r/ekzhang/rustpad/)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/ekzhang/rustpad/CI)](https://github.com/ekzhang/rustpad/actions/workflows/ci.yml)
+
 **Rustpad** is an _efficient_ and _minimal_ open-source collaborative text
 editor based on the operational transformation algorithm. It lets users
 collaborate in real time while writing code in their browser. Rustpad is
@@ -70,7 +74,7 @@ wasm-pack test rustpad-wasm --chrome --headless
 
 ## Deployment
 
-Rustpad is distributed as a single 12 MB Docker image, which is built
+Rustpad is distributed as a single 4 MB Docker image, which is built
 automatically from the `Dockerfile` in this repository. You can pull the latest
 version of this image from Docker Hub.
 
