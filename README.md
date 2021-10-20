@@ -84,10 +84,10 @@ following environment variables on startup:
   (default 1 day).
 - `SQLITE_URI`: A SQLite connection string used for persistence. If provided,
   Rustpad will persist the contents of documents to a local file on disk, which
-  will enable documents to be retained between server restarts, and even after
-  they are garbage collected due to inactivity.
+  enables documents to be retained between server restarts, and also after their
+  in-memory data structures expire.
 - `PORT`: Which local port to listen for HTTP connections on (defaults to 3030).
-- `RUST_LOG`: Controls application server logging, see the
+- `RUST_LOG`: Directives that control application logging, see the
   [env_logger](https://docs.rs/env_logger/#enabling-logging) docs for more
   information.
 
