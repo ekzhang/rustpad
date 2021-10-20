@@ -12,10 +12,9 @@ use serde::Serialize;
 use tokio::time::{self, Instant};
 use warp::{filters::BoxedFilter, ws::Ws, Filter, Rejection, Reply};
 
-pub use crate::database::Database;
-use crate::rustpad::Rustpad;
+use crate::{database::Database, rustpad::Rustpad};
 
-mod database;
+pub mod database;
 mod ot;
 mod rustpad;
 

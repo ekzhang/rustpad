@@ -6,7 +6,7 @@ use anyhow::{bail, Result};
 use sqlx::{sqlite::SqliteConnectOptions, ConnectOptions, SqlitePool};
 
 /// Represents a document persisted in database storage.
-#[derive(sqlx::FromRow)]
+#[derive(sqlx::FromRow, PartialEq, Eq, Clone, Debug)]
 pub struct PersistedDocument {
     /// Text content of the document.
     pub text: String,

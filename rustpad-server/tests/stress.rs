@@ -53,13 +53,13 @@ async fn test_lost_wakeups() -> Result<()> {
         let mut total = 0;
         while total < num_edits {
             let msg = client.recv().await?;
-            total += num_ops(&msg).ok_or(anyhow!("missing json key"))?;
+            total += num_ops(&msg).ok_or_else(|| anyhow!("missing json key"))?;
         }
 
         let mut total2 = 0;
         while total2 < num_edits {
             let msg = client2.recv().await?;
-            total2 += num_ops(&msg).ok_or(anyhow!("missing json key"))?;
+            total2 += num_ops(&msg).ok_or_else(|| anyhow!("missing json key"))?;
         }
 
         info!("took {} ms", start.elapsed().as_millis());
