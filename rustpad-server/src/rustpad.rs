@@ -1,7 +1,7 @@
 //! Eventually consistent server-side logic for Rustpad.
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use anyhow::{bail, Context, Result};
 use futures::prelude::*;
@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, Notify};
 use warp::ws::{Message, WebSocket};
 
-use crate::ot::transform_index;
+use crate::{database::PersistedDocument, ot::transform_index};
 
 /// The main object representing a collaborative session.
 pub struct Rustpad {
@@ -24,6 +24,8 @@ pub struct Rustpad {
     notify: Notify,
     /// Used to inform all clients of metadata updates.
     update: broadcast::Sender<ServerMsg>,
+    /// Set to true when the document is destroyed.
+    killed: AtomicBool,
 }
 
 /// Shared state involving multiple users, protected by a lock.
@@ -103,7 +105,27 @@ impl Default for Rustpad {
             count: Default::default(),
             notify: Default::default(),
             update: tx,
+            killed: AtomicBool::new(false),
         }
+    }
+}
+
+impl From<PersistedDocument> for Rustpad {
+    fn from(document: PersistedDocument) -> Self {
+        let mut operation = OperationSeq::default();
+        operation.insert(&document.text);
+
+        let rustpad = Self::default();
+        {
+            let mut state = rustpad.state.write();
+            state.text = document.text;
+            state.language = document.language;
+            state.operations.push(UserOperation {
+                id: u64::MAX,
+                operation,
+            })
+        }
+        rustpad
     }
 }
 
@@ -129,10 +151,30 @@ impl Rustpad {
         state.text.clone()
     }
 
+    /// Returns a snapshot of the current document for persistence.
+    pub fn snapshot(&self) -> PersistedDocument {
+        let state = self.state.read();
+        PersistedDocument {
+            text: state.text.clone(),
+            language: state.language.clone(),
+        }
+    }
+
     /// Returns the current revision.
     pub fn revision(&self) -> usize {
         let state = self.state.read();
         state.operations.len()
+    }
+
+    /// Kill this object immediately, dropping all current connections.
+    pub fn kill(&self) {
+        self.killed.store(true, Ordering::Relaxed);
+        self.notify.notify_waiters();
+    }
+
+    /// Returns if this Rustpad object has been killed.
+    pub fn killed(&self) -> bool {
+        self.killed.load(Ordering::Relaxed)
     }
 
     async fn handle_connection(&self, id: u64, mut socket: WebSocket) -> Result<()> {
@@ -145,6 +187,9 @@ impl Rustpad {
             // notification, **then** check the current state for new revisions.
             // This is the same approach that `tokio::sync::watch` takes.
             let notified = self.notify.notified();
+            if self.killed() {
+                break;
+            }
             if self.revision() > revision {
                 revision = self.send_history(revision, &mut socket).await?
             }
