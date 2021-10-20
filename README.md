@@ -93,7 +93,7 @@ following environment variables on startup:
 
 ## Deployment
 
-Rustpad is distributed as a single 4 MB Docker image, which is built
+Rustpad is distributed as a single 5 MB Docker image, which is built
 automatically from the `Dockerfile` in this repository. You can pull the latest
 version of this image from Docker Hub.
 
