@@ -72,9 +72,29 @@ For the WebAssembly component, you can run tests in a headless browser with
 wasm-pack test rustpad-wasm --chrome --headless
 ```
 
+## Configuration
+
+Although the default behavior of Rustpad is to store documents solely in memory
+and collect garbage after 24 hours of inactivity, this can be configured by
+setting the appropriate variables. The application server looks for the
+following environment variables on startup:
+
+- `EXPIRY_DAYS`: An integer corresponding to the number of days that inactive
+  documents are kept in memory before being garbage collected by the server
+  (default 1 day).
+- `SQLITE_URI`: A SQLite connection string used for persistence. If provided,
+  Rustpad will snapshot document contents to a local file, which enables them to
+  be retained between server restarts and after their in-memory data structures
+  expire. (When deploying a Docker container, this should point to the path of a
+  mounted volume.)
+- `PORT`: Which local port to listen for HTTP connections on (defaults to 3030).
+- `RUST_LOG`: Directives that control application logging, see the
+  [env_logger](https://docs.rs/env_logger/#enabling-logging) docs for more
+  information.
+
 ## Deployment
 
-Rustpad is distributed as a single 4 MB Docker image, which is built
+Rustpad is distributed as a single 5 MB Docker image, which is built
 automatically from the `Dockerfile` in this repository. You can pull the latest
 version of this image from Docker Hub.
 

@@ -13,7 +13,7 @@ impl JsonSocket {
     pub async fn recv(&mut self) -> Result<Value> {
         let msg = self.0.recv().await?;
         let msg = msg.to_str().map_err(|_| anyhow!("non-string message"))?;
-        Ok(serde_json::from_str(&msg)?)
+        Ok(serde_json::from_str(msg)?)
     }
 
     pub async fn recv_closed(&mut self) -> Result<()> {

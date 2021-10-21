@@ -1,4 +1,4 @@
-use rustpad_server::{server, ServerConfig};
+use rustpad_server::{server, database::Database, ServerConfig};
 
 #[tokio::main]
 async fn main() {
@@ -15,6 +15,14 @@ async fn main() {
             .unwrap_or_else(|_| String::from("1"))
             .parse()
             .expect("Unable to parse EXPIRY_DAYS"),
+        database: match std::env::var("SQLITE_URI") {
+            Ok(uri) => Some(
+                Database::new(&uri)
+                    .await
+                    .expect("Unable to connect to SQLITE_URI"),
+            ),
+            Err(_) => None,
+        },
     };
 
     warp::serve(server(config)).run(([0, 0, 0, 0], port)).await;
