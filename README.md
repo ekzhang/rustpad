@@ -69,7 +69,7 @@ To run integration tests for the server, use the standard `cargo test` command.
 For the WebAssembly component, you can run tests in a headless browser with
 
 ```
-wasm-pack test rustpad-wasm --chrome --headless
+wasm-pack test --chrome --headless rustpad-wasm
 ```
 
 ## Configuration
@@ -94,7 +94,7 @@ following environment variables on startup:
 
 ## Deployment
 
-Rustpad is distributed as a single 5 MB Docker image, which is built
+Rustpad is distributed as a single 6 MB Docker image, which is built
 automatically from the `Dockerfile` in this repository. You can pull the latest
 version of this image from Docker Hub.
 
