@@ -2,7 +2,7 @@
 name = "rustpad-server"
 version = "0.1.0"
 authors = ["Eric Zhang <ekzhang1@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 anyhow = "1.0.40"

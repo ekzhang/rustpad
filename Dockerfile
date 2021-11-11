@@ -1,8 +1,9 @@
-FROM ekidd/rust-musl-builder:latest as backend
+FROM rust:alpine as backend
 WORKDIR /home/rust/src
+RUN apk --no-cache add musl-dev openssl-dev
 COPY . .
-RUN cargo test --release
-RUN cargo build --release
+RUN cargo test --release rustpad-server
+RUN cargo build --release rustpad-server
 
 FROM rust:alpine as wasm
 WORKDIR /home/rust/src
@@ -23,6 +24,6 @@ RUN npm run build
 
 FROM scratch
 COPY --from=frontend /usr/src/app/build build
-COPY --from=backend /home/rust/src/target/x86_64-unknown-linux-musl/release/rustpad-server .
+COPY --from=backend /home/rust/src/target/release/rustpad-server .
 USER 1000:1000
 CMD [ "./rustpad-server" ]
