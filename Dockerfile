@@ -11,7 +11,7 @@ RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 COPY . .
 RUN wasm-pack build rustpad-wasm
 
-FROM node:alpine as frontend
+FROM node:lts-alpine as frontend
 WORKDIR /usr/src/app
 COPY package.json package-lock.json ./
 COPY --from=wasm /home/rust/src/rustpad-wasm/pkg rustpad-wasm/pkg
