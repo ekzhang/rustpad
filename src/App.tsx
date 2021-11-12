@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { set_panic_hook } from "rustpad-wasm";
 import {
   Box,
   Button,
@@ -27,7 +26,7 @@ import {
 import useStorage from "use-local-storage-state";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
-import raw from "raw.macro";
+import rustpadRaw from "../rustpad-server/src/rustpad.rs?raw";
 import languages from "./languages.json";
 import animals from "./animals.json";
 import Rustpad, { UserInfo } from "./rustpad";
@@ -35,8 +34,6 @@ import useHash from "./useHash";
 import ConnectionStatus from "./ConnectionStatus";
 import Footer from "./Footer";
 import User from "./User";
-
-set_panic_hook();
 
 function getWsUri(id: string) {
   return (
@@ -57,8 +54,9 @@ function generateHue() {
 function App() {
   const toast = useToast();
   const [language, setLanguage] = useState("plaintext");
-  const [connection, setConnection] =
-    useState<"connected" | "disconnected" | "desynchronized">("disconnected");
+  const [connection, setConnection] = useState<
+    "connected" | "disconnected" | "desynchronized"
+  >("disconnected");
   const [users, setUsers] = useState<Record<number, UserInfo>>({});
   const [name, setName] = useStorage("name", generateName);
   const [hue, setHue] = useStorage("hue", generateHue);
@@ -146,7 +144,7 @@ function App() {
         [
           {
             range: model.getFullModelRange(),
-            text: raw("../rustpad-server/src/rustpad.rs"),
+            text: rustpadRaw,
           },
         ],
         () => null

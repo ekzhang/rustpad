@@ -96,7 +96,7 @@ pub fn server(config: ServerConfig) -> BoxedFilter<(impl Reply,)> {
 
 /// Construct routes for static files from React.
 fn frontend() -> BoxedFilter<(impl Reply,)> {
-    warp::fs::dir("build").boxed()
+    warp::fs::dir("dist").boxed()
 }
 
 /// Construct backend routes, including WebSocket handlers.
