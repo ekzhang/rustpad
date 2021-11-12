@@ -2,7 +2,7 @@
 /target
 pkg
 /node_modules
-/build
+/dist
 *.local
 
 Dockerfile

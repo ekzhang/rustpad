@@ -1,9 +1,10 @@
 import { Flex, Icon, Text } from "@chakra-ui/react";
 import { VscRemote } from "react-icons/vsc";
 
-const version = process.env.REACT_APP_SHA
-  ? process.env.REACT_APP_SHA.slice(0, 7)
-  : "development";
+const version =
+  typeof import.meta.env.VITE_SHA === "string"
+    ? import.meta.env.VITE_SHA.slice(0, 7)
+    : "development";
 
 function Footer() {
   return (
