@@ -96,16 +96,16 @@ following environment variables on startup:
 
 Rustpad is distributed as a single 6 MB Docker image, which is built
 automatically from the `Dockerfile` in this repository. You can pull the latest
-version of this image from Docker Hub.
+version of this image from Docker Hub. It has multi-platform support for
+`linux/amd64` and `linux/arm64`.
 
 ```
 docker pull ekzhang/rustpad
 ```
 
 (You can also manually build this image with `docker build -t rustpad .` in the
-project root directory, ensuring that your target platform is `linux/amd64`.) To
-run locally, execute the following command, then open `http://localhost:3030` in
-your browser.
+project root directory.) To run locally, execute the following command, then
+open `http://localhost:3030` in your browser.
 
 ```
 docker run --rm -dp 3030:3030 ekzhang/rustpad
