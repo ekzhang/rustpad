@@ -124,7 +124,7 @@ fn backend(config: ServerConfig) -> BoxedFilter<(impl Reply,)> {
         .as_secs();
     let stats = warp::path!("stats")
         .and(warp::any().map(move || start_time))
-        .and(state_filter.clone())
+        .and(state_filter)
         .and_then(stats_handler);
 
     socket.or(text).or(stats).boxed()

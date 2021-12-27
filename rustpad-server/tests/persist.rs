@@ -66,7 +66,6 @@ async fn test_persist() -> Result<()> {
     let filter = server(ServerConfig {
         expiry_days: 2,
         database: Some(Database::new(&temp_sqlite_uri()?).await?),
-        ..ServerConfig::default()
     });
 
     expect_text(&filter, "persist", "").await;
