@@ -19,7 +19,11 @@ function ConnectionStatus({ connection, darkMode }: ConnectionStatusProps) {
           }[connection]
         }
       />
-      <Text fontSize="sm" fontStyle="italic" color={darkMode ? "gray.300" : "gray.600"}>
+      <Text
+        fontSize="sm"
+        fontStyle="italic"
+        color={darkMode ? "gray.300" : "gray.600"}
+      >
         {
           {
             connected: "You are connected!",
