@@ -5,14 +5,14 @@ COPY . .
 RUN cargo test --release
 RUN cargo build --release
 
-FROM rust:alpine as wasm
+FROM amd64/rust:alpine as wasm
 WORKDIR /home/rust/src
 RUN apk --no-cache add curl musl-dev
 RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 COPY . .
 RUN wasm-pack build --target web rustpad-wasm
 
-FROM node:lts-alpine as frontend
+FROM amd64/node:lts-alpine as frontend
 WORKDIR /usr/src/app
 COPY package.json package-lock.json ./
 COPY --from=wasm /home/rust/src/rustpad-wasm/pkg rustpad-wasm/pkg
