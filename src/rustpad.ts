@@ -5,6 +5,7 @@ import type {
   IPosition,
 } from "monaco-editor/esm/vs/editor/editor.api";
 import debounce from "lodash.debounce";
+import { Language } from "./languages";
 
 /** Options passed in to the Rustpad constructor. */
 export type RustpadOptions = {
@@ -13,7 +14,7 @@ export type RustpadOptions = {
   readonly onConnected?: () => unknown;
   readonly onDisconnected?: () => unknown;
   readonly onDesynchronized?: () => unknown;
-  readonly onChangeLanguage?: (language: string) => unknown;
+  readonly onChangeLanguage?: (language: Language) => unknown;
   readonly onChangeUsers?: (users: Record<number, UserInfo>) => unknown;
   readonly reconnectInterval?: number;
 };
@@ -97,7 +98,7 @@ class Rustpad {
   }
 
   /** Try to set the language of the editor, if connected. */
-  setLanguage(language: string): boolean {
+  setLanguage(language: Language): boolean {
     this.ws?.send(`{"SetLanguage":${JSON.stringify(language)}}`);
     return this.ws !== undefined;
   }
@@ -443,7 +444,7 @@ type ServerMsg = {
     start: number;
     operations: UserOperation[];
   };
-  Language?: string;
+  Language?: Language;
   UserInfo?: {
     id: number;
     info: UserInfo | null;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -9,6 +9,7 @@ import {
   Icon,
   Input,
   InputGroup,
+  ButtonGroup,
   InputRightElement,
   Link,
   Select,
@@ -19,6 +20,8 @@ import {
 } from "@chakra-ui/react";
 import {
   VscChevronRight,
+  VscCloudDownload,
+  VscCloudUpload,
   VscFolderOpened,
   VscGist,
   VscRepoPull,
@@ -27,7 +30,7 @@ import useStorage from "use-local-storage-state";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
 import rustpadRaw from "../rustpad-server/src/rustpad.rs?raw";
-import languages from "./languages.json";
+import { getFileExtension, getLanguage, Language, languages } from "./languages";
 import animals from "./animals.json";
 import Rustpad, { UserInfo } from "./rustpad";
 import useHash from "./useHash";
@@ -43,6 +46,20 @@ function getWsUri(id: string) {
   );
 }
 
+function useKeyboardCtrlIntercept(key: string, reaction: (evt: KeyboardEvent) => unknown) {
+  useEffect(() => {
+    const wrappedReaction: typeof reaction = (evt) => {
+      if (!(evt.ctrlKey && evt.key.toLowerCase() === key.toLowerCase())) return;
+      evt.preventDefault();
+      reaction(evt);
+    }
+    const controller = new AbortController();
+    window.addEventListener("keydown", wrappedReaction, {signal: controller.signal});
+
+    return () => controller.abort()
+  }, [key, reaction])
+}
+
 function generateName() {
   return "Anonymous " + animals[Math.floor(Math.random() * animals.length)];
 }
@@ -51,9 +68,23 @@ function generateHue() {
   return Math.floor(Math.random() * 360);
 }
 
+/** 
+ * This appears to still be the best way to download a file while suggesting a filename.
+ * 
+ * According to [mdn](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download) 
+ * the download attribute gets ignored on URIs that are not either `same-origin` or use the `blob` or `data` schemes.
+ */
+function downloadUri(uri: string, filename: string) {
+  const downloadAnchor = document.createElement("a");
+  console.log(filename);
+  downloadAnchor.download = filename;
+  downloadAnchor.href = uri;
+  downloadAnchor.click();
+}
+
 function App() {
   const toast = useToast();
-  const [language, setLanguage] = useState("plaintext");
+  const [language, setLanguage] = useState<Language>("plaintext");
   const [connection, setConnection] = useState<
     "connected" | "disconnected" | "desynchronized"
   >("disconnected");
@@ -104,7 +135,7 @@ function App() {
     }
   }, [connection, name, hue]);
 
-  function handleChangeLanguage(language: string) {
+  function handleChangeLanguage(language: Language) {
     setLanguage(language);
     if (rustpad.current?.setLanguage(language)) {
       toast({
@@ -136,25 +167,49 @@ function App() {
     });
   }
 
+  const setText = useCallback((newText: string) => {
+    const model = editor?.getModel();
+    if (!model || !editor) return;
+    model.pushEditOperations(
+      editor.getSelections(),
+      [
+        {
+          range: model.getFullModelRange(),
+          text: newText,
+        }
+      ],
+      () => null
+    );
+    editor.setPosition({ column: 0, lineNumber: 0});
+  }, [editor]);
+
   function handleLoadSample() {
-    if (editor?.getModel()) {
-      const model = editor.getModel()!;
-      model.pushEditOperations(
-        editor.getSelections(),
-        [
-          {
-            range: model.getFullModelRange(),
-            text: rustpadRaw,
-          },
-        ],
-        () => null
-      );
-      editor.setPosition({ column: 0, lineNumber: 0 });
-      if (language !== "rust") {
-        handleChangeLanguage("rust");
-      }
+    setText(rustpadRaw);
+    if (language !== "rust") {
+      handleChangeLanguage("rust");
     }
   }
+
+  const handleUploadFile = useCallback(async (file: File) => {
+    const text = await file.text();
+    setText(text);
+    const newLanguage = getLanguage(file.name);
+    if (newLanguage !== language) handleChangeLanguage(newLanguage);
+  }, [language]);
+
+  const handleDownloadFile = useCallback(() => {
+    const model = editor?.getModel();
+    if (!model || !editor) return;
+    const text = model.getValue();
+    const languageExtension = getFileExtension(language);
+    const fileName = "unknown." + languageExtension;
+    const file = new File([text], fileName);
+    const url = URL.createObjectURL(file);
+    downloadUri(url, fileName);
+    URL.revokeObjectURL(url);
+  }, [editor, language]);
+
+  useKeyboardCtrlIntercept('s', handleDownloadFile);
 
   function handleDarkMode() {
     setDarkMode(!darkMode);
@@ -167,6 +222,15 @@ function App() {
       overflow="hidden"
       bgColor={darkMode ? "#1e1e1e" : "white"}
       color={darkMode ? "#cbcaca" : "inherit"}
+      onDragOver={(evt) => evt.preventDefault()}
+      onDrop={(evt) => {
+        evt.preventDefault();
+        const dragItems = evt.dataTransfer.items;
+        if (dragItems.length !== 1) return;
+        const file = dragItems[0].getAsFile();
+        if (file === null) return;
+        handleUploadFile(file);
+      }}
     >
       <Box
         flexShrink={0}
@@ -202,7 +266,7 @@ function App() {
             bgColor={darkMode ? "#3c3c3c" : "white"}
             borderColor={darkMode ? "#3c3c3c" : "white"}
             value={language}
-            onChange={(event) => handleChangeLanguage(event.target.value)}
+            onChange={(event) => handleChangeLanguage(event.target.value as Language)}
           >
             {languages.map((lang) => (
               <option key={lang} value={lang} style={{ color: "black" }}>
@@ -235,6 +299,61 @@ function App() {
               </Button>
             </InputRightElement>
           </InputGroup>
+
+          {/* TODO:
+          * * Test
+          * */}
+          <Heading mt={4} mb={1.5} size="sm">
+            Upload & Download 
+          </Heading>
+          <Text>
+            You can also upload with drag&drop and downlod with Ctrl + S
+          </Text>
+          <ButtonGroup 
+            size="sm"
+            display="flex"
+          >
+              <label htmlFor="file-upload" style={{flex: "auto"}}>
+                <Button
+                  size="sm"
+                  colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
+                  borderColor={darkMode ? "purple.400" : "purple.600"}
+                  color={darkMode ? "purple.400" : "purple.600"}
+                  variant="outline"
+                  leftIcon={<VscCloudUpload />}
+                  mt={1}
+                >
+                  Upload
+                </Button>
+              </label>
+              <input
+                id="file-upload"
+                type="file"
+                style={{opacity: 0, maxWidth: 0}}
+                onClick={async (evt) => {
+                  const target = evt.currentTarget;
+                  const files = target.files ?? [];
+                  if (files?.length !== 1) return;
+                  handleUploadFile(files[1]);
+                }}
+              />
+              <Button
+                size="sm"
+                colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
+                borderColor={darkMode ? "purple.400" : "purple.600"}
+                color={darkMode ? "purple.400" : "purple.600"}
+                variant="outline"
+                leftIcon={<VscCloudDownload />}
+                mt={1}
+                flex="auto"
+                onClick={(evt) => {
+                  evt.preventDefault();
+                  handleDownloadFile();
+                }}
+              >
+                Download
+              </Button>
+          </ButtonGroup>
 
           <Heading mt={4} mb={1.5} size="sm">
             Active Users
