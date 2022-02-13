@@ -82,6 +82,23 @@ function downloadUri(uri: string, filename: string) {
   downloadAnchor.click();
 }
 
+/**
+ * This appears to be the best way to upload a file.
+ */
+async function uploadFile() {
+  const uploadInput = document.createElement("input");
+  uploadInput.type = "file";
+  uploadInput.click();
+  const abortController = new AbortController();
+  await new Promise((resolve) => uploadInput.addEventListener("change", resolve, {signal: abortController.signal}));
+  abortController.abort();
+  const files = uploadInput.files;
+  if (files?.length !== 1) return;
+  const file = files[0];
+  console.log(file.name);
+  return file;
+}
+
 function App() {
   const toast = useToast();
   const [language, setLanguage] = useState<Language>("plaintext");
@@ -313,30 +330,23 @@ function App() {
             size="sm"
             display="flex"
           >
-              <label htmlFor="file-upload" style={{flex: "auto"}}>
-                <Button
-                  size="sm"
-                  colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
-                  borderColor={darkMode ? "purple.400" : "purple.600"}
-                  color={darkMode ? "purple.400" : "purple.600"}
-                  variant="outline"
-                  leftIcon={<VscCloudUpload />}
-                  mt={1}
-                >
-                  Upload
-                </Button>
-              </label>
-              <input
-                id="file-upload"
-                type="file"
-                style={{opacity: 0, maxWidth: 0}}
-                onClick={async (evt) => {
-                  const target = evt.currentTarget;
-                  const files = target.files ?? [];
-                  if (files?.length !== 1) return;
-                  handleUploadFile(files[1]);
+              <Button
+                size="sm"
+                colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
+                borderColor={darkMode ? "purple.400" : "purple.600"}
+                color={darkMode ? "purple.400" : "purple.600"}
+                variant="outline"
+                leftIcon={<VscCloudUpload />}
+                mt={1}
+                flex="auto"
+                onClick={async () => {
+                  const file = await uploadFile();
+                  if (!file) return;
+                  handleUploadFile(file);
                 }}
-              />
+              >
+                Upload
+              </Button>
               <Button
                 size="sm"
                 colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
