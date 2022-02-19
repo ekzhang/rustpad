@@ -46,12 +46,13 @@ function getWsUri(id: string) {
   );
 }
 
-function useKeyboardCtrlIntercept(key: string, reaction: (evt: KeyboardEvent) => unknown) {
+function useKeyboardCtrlIntercept(key: string, reaction: (event: KeyboardEvent) => unknown) {
   useEffect(() => {
-    const wrappedReaction: typeof reaction = (evt) => {
-      if (!(evt.ctrlKey && evt.key.toLowerCase() === key.toLowerCase())) return;
-      evt.preventDefault();
-      reaction(evt);
+    const wrappedReaction: typeof reaction = (event) => {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      if (event.key.toLowerCase() !== key.toLowerCase()) return;
+      event.preventDefault();
+      reaction(event);
     }
     const controller = new AbortController();
     window.addEventListener("keydown", wrappedReaction, {signal: controller.signal});
@@ -76,7 +77,6 @@ function generateHue() {
  */
 function downloadUri(uri: string, filename: string) {
   const downloadAnchor = document.createElement("a");
-  console.log(filename);
   downloadAnchor.download = filename;
   downloadAnchor.href = uri;
   downloadAnchor.click();
@@ -85,7 +85,7 @@ function downloadUri(uri: string, filename: string) {
 async function eventToAsync<EventType extends keyof HTMLElementEventMap>(element: HTMLElement, eventType: EventType) {
   const abortController = new AbortController();
   const evt = await new Promise<HTMLElementEventMap[EventType]>((resolve) => {
-    element.addEventListener(eventType, (evt) => resolve(evt), {signal: abortController.signal});
+    element.addEventListener(eventType, (event) => resolve(event), {signal: abortController.signal});
   })
   abortController.abort();
   return evt;
@@ -244,10 +244,10 @@ function App() {
       overflow="hidden"
       bgColor={darkMode ? "#1e1e1e" : "white"}
       color={darkMode ? "#cbcaca" : "inherit"}
-      onDragOver={(evt) => evt.preventDefault()}
-      onDrop={(evt) => {
-        evt.preventDefault();
-        const dragItems = evt.dataTransfer.items;
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        const dragItems = event.dataTransfer.items;
         if (dragItems.length !== 1) return;
         const file = dragItems[0].getAsFile();
         if (file === null) return;
@@ -322,9 +322,6 @@ function App() {
             </InputRightElement>
           </InputGroup>
 
-          {/* TODO:
-          * * Test
-          * */}
           <Heading mt={4} mb={1.5} size="sm">
             Upload & Download 
           </Heading>
@@ -361,8 +358,8 @@ function App() {
                 leftIcon={<VscCloudDownload />}
                 mt={1}
                 flex="auto"
-                onClick={(evt) => {
-                  evt.preventDefault();
+                onClick={(event) => {
+                  event.preventDefault();
                   handleDownloadFile();
                 }}
               >
