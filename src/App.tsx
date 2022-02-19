@@ -63,9 +63,7 @@ function useKeyboardCtrlIntercept(
       reaction(event);
     };
     const controller = new AbortController();
-    window.addEventListener("keydown", wrappedReaction, {
-      signal: controller.signal,
-    });
+    window.addEventListener("keydown", wrappedReaction, {signal: controller.signal});
 
     return () => controller.abort();
   }, [key, reaction]);
@@ -92,28 +90,15 @@ function downloadUri(uri: string, filename: string) {
   downloadAnchor.click();
 }
 
-async function eventToAsync<EventType extends keyof HTMLElementEventMap>(
-  element: HTMLElement,
-  eventType: EventType
-) {
-  const abortController = new AbortController();
-  const evt = await new Promise<HTMLElementEventMap[EventType]>((resolve) => {
-    element.addEventListener(eventType, (event) => resolve(event), {
-      signal: abortController.signal,
-    });
-  });
-  abortController.abort();
-  return evt;
-}
-
-/**
- * This appears to be the best way to upload a file.
- */
-async function uploadFile() {
+async function getFileUploadWithDialog() {
   const uploadInput = document.createElement("input");
   uploadInput.type = "file";
   uploadInput.click();
-  await eventToAsync(uploadInput, "change");
+  const controller = new AbortController();
+  // await the user-input (selecting the file)
+  await new Promise((resolve) => uploadInput.addEventListener("change", resolve, {signal: controller.signal}));
+  controller.abort();
+  console.log("reached", uploadInput.files?.length);
   const files = uploadInput.files;
   if (files?.length !== 1) return;
   return files[0];
@@ -356,7 +341,7 @@ function App() {
               mt={1}
               flex="auto"
               onClick={async () => {
-                const file = await uploadFile();
+                const file = await getFileUploadWithDialog();
                 if (!file) return;
                 handleUploadFile(file);
               }}
