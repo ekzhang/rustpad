@@ -90,6 +90,13 @@ function downloadUri(uri: string, filename: string) {
   downloadAnchor.click();
 }
 
+function downloadText(text: string, fileName: string) {
+  const file = new File([text], fileName);
+  const url = URL.createObjectURL(file);
+  downloadUri(url, fileName);
+  URL.revokeObjectURL(url)
+}
+
 async function getFileUploadWithDialog() {
   const uploadInput = document.createElement("input");
   uploadInput.type = "file";
@@ -222,13 +229,10 @@ function App() {
   function handleDownloadFile() {
     const model = editor?.getModel();
     if (!model || !editor) return;
-    const text = model.getValue();
-    const languageExtension = getFileExtension(language);
-    const fileName = "unknown." + languageExtension;
-    const file = new File([text], fileName);
-    const url = URL.createObjectURL(file);
-    downloadUri(url, fileName);
-    URL.revokeObjectURL(url);
+    downloadText(
+      model.getValue(),
+      `rustpad.${getFileExtension(language)}`,
+    )
   }
 
   useKeyboardCtrlIntercept("s", handleDownloadFile);
