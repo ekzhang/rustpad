@@ -78,13 +78,13 @@ export const languages = [
   "vb",
   "verilog",
   "xml",
-  "yaml"
+  "yaml",
 ] as const;
 
 export type Language = typeof languages[number];
 
 /** The default extension of the known programming languages (to be used on download) */
-const defaultExtensions: {[key in Language]?: string} = {
+const defaultExtensions: { [key in Language]?: string } = {
   typescript: "ts",
   rust: "rs",
   cpp: "cpp",
@@ -92,30 +92,32 @@ const defaultExtensions: {[key in Language]?: string} = {
   html: "html",
 };
 
-type LanguageExtensions = {[key in string]: Language};
+type LanguageExtensions = { [key in string]: Language };
 
-/** 
+/**
  * Additional extensions that refer to known languages, to detect filetype on upload.
  * NO NEED to add the default file extensions.
  */
 const additionalExtensionsToLanguage: LanguageExtensions = {
-  "yml": "yaml",
-  "cc": "cpp",
+  yml: "yaml",
+  cc: "cpp",
 };
 
 /** Used on download to determine file extension. */
 export function getFileExtension(language: Language) {
   return defaultExtensions[language] ?? "txt";
-};
+}
 
 /** invert key value */
-const defaultExtensionsToLanguage = Object.entries(defaultExtensions)
-  .reduce((defaultExtensionsToLanguage, [key, value]) => {
+const defaultExtensionsToLanguage = Object.entries(defaultExtensions).reduce(
+  (defaultExtensionsToLanguage, [key, value]) => {
     return {
       ...defaultExtensionsToLanguage,
-      [value]: key as Language
-    }
-  }, {} as LanguageExtensions);
+      [value]: key as Language,
+    };
+  },
+  {} as LanguageExtensions
+);
 
 const extensionsToLanguage: LanguageExtensions = {
   ...defaultExtensionsToLanguage,
@@ -125,4 +127,4 @@ const extensionsToLanguage: LanguageExtensions = {
 /** Used to detect programming language on upload based on file name */
 export function getLanguage(fileName: string): Language {
   return extensionsToLanguage[fileName.split(".")[1]] ?? "plaintext";
-};
+}

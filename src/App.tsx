@@ -30,7 +30,12 @@ import useStorage from "use-local-storage-state";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
 import rustpadRaw from "../rustpad-server/src/rustpad.rs?raw";
-import { getFileExtension, getLanguage, Language, languages } from "./languages";
+import {
+  getFileExtension,
+  getLanguage,
+  Language,
+  languages,
+} from "./languages";
 import animals from "./animals.json";
 import Rustpad, { UserInfo } from "./rustpad";
 import useHash from "./useHash";
@@ -46,19 +51,24 @@ function getWsUri(id: string) {
   );
 }
 
-function useKeyboardCtrlIntercept(key: string, reaction: (event: KeyboardEvent) => unknown) {
+function useKeyboardCtrlIntercept(
+  key: string,
+  reaction: (event: KeyboardEvent) => unknown
+) {
   useEffect(() => {
     const wrappedReaction: typeof reaction = (event) => {
       if (!(event.metaKey || event.ctrlKey)) return;
       if (event.key.toLowerCase() !== key.toLowerCase()) return;
       event.preventDefault();
       reaction(event);
-    }
+    };
     const controller = new AbortController();
-    window.addEventListener("keydown", wrappedReaction, {signal: controller.signal});
+    window.addEventListener("keydown", wrappedReaction, {
+      signal: controller.signal,
+    });
 
-    return () => controller.abort()
-  }, [key, reaction])
+    return () => controller.abort();
+  }, [key, reaction]);
 }
 
 function generateName() {
@@ -69,10 +79,10 @@ function generateHue() {
   return Math.floor(Math.random() * 360);
 }
 
-/** 
+/**
  * This appears to still be the best way to download a file while suggesting a filename.
- * 
- * According to [mdn](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download) 
+ *
+ * According to [mdn](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download)
  * the download attribute gets ignored on URIs that are not either `same-origin` or use the `blob` or `data` schemes.
  */
 function downloadUri(uri: string, filename: string) {
@@ -82,11 +92,16 @@ function downloadUri(uri: string, filename: string) {
   downloadAnchor.click();
 }
 
-async function eventToAsync<EventType extends keyof HTMLElementEventMap>(element: HTMLElement, eventType: EventType) {
+async function eventToAsync<EventType extends keyof HTMLElementEventMap>(
+  element: HTMLElement,
+  eventType: EventType
+) {
   const abortController = new AbortController();
   const evt = await new Promise<HTMLElementEventMap[EventType]>((resolve) => {
-    element.addEventListener(eventType, (event) => resolve(event), {signal: abortController.signal});
-  })
+    element.addEventListener(eventType, (event) => resolve(event), {
+      signal: abortController.signal,
+    });
+  });
   abortController.abort();
   return evt;
 }
@@ -198,12 +213,12 @@ function App() {
         {
           range: model.getFullModelRange(),
           text: newText,
-        }
+        },
       ],
       () => null
     );
-    editor.setPosition({ column: 0, lineNumber: 0});
-  };
+    editor.setPosition({ column: 0, lineNumber: 0 });
+  }
 
   function handleLoadSample() {
     setText(rustpadRaw);
@@ -217,7 +232,7 @@ function App() {
     setText(text);
     const newLanguage = getLanguage(file.name);
     if (newLanguage !== language) handleChangeLanguage(newLanguage);
-  };
+  }
 
   function handleDownloadFile() {
     const model = editor?.getModel();
@@ -229,9 +244,9 @@ function App() {
     const url = URL.createObjectURL(file);
     downloadUri(url, fileName);
     URL.revokeObjectURL(url);
-  };
+  }
 
-  useKeyboardCtrlIntercept('s', handleDownloadFile);
+  useKeyboardCtrlIntercept("s", handleDownloadFile);
 
   function handleDarkMode() {
     setDarkMode(!darkMode);
@@ -288,7 +303,9 @@ function App() {
             bgColor={darkMode ? "#3c3c3c" : "white"}
             borderColor={darkMode ? "#3c3c3c" : "white"}
             value={language}
-            onChange={(event) => handleChangeLanguage(event.target.value as Language)}
+            onChange={(event) =>
+              handleChangeLanguage(event.target.value as Language)
+            }
           >
             {languages.map((lang) => (
               <option key={lang} value={lang} style={{ color: "black" }}>
@@ -323,48 +340,45 @@ function App() {
           </InputGroup>
 
           <Heading mt={4} mb={1.5} size="sm">
-            Upload & Download 
+            Upload & Download
           </Heading>
           <Text>
             You can also upload with drag&drop and downlod with Ctrl + S
           </Text>
-          <ButtonGroup 
-            size="sm"
-            display="flex"
-          >
-              <Button
-                size="sm"
-                colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
-                borderColor={darkMode ? "purple.400" : "purple.600"}
-                color={darkMode ? "purple.400" : "purple.600"}
-                variant="outline"
-                leftIcon={<VscCloudUpload />}
-                mt={1}
-                flex="auto"
-                onClick={async () => {
-                  const file = await uploadFile();
-                  if (!file) return;
-                  handleUploadFile(file);
-                }}
-              >
-                Upload
-              </Button>
-              <Button
-                size="sm"
-                colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
-                borderColor={darkMode ? "purple.400" : "purple.600"}
-                color={darkMode ? "purple.400" : "purple.600"}
-                variant="outline"
-                leftIcon={<VscCloudDownload />}
-                mt={1}
-                flex="auto"
-                onClick={(event) => {
-                  event.preventDefault();
-                  handleDownloadFile();
-                }}
-              >
-                Download
-              </Button>
+          <ButtonGroup size="sm" display="flex">
+            <Button
+              size="sm"
+              colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
+              borderColor={darkMode ? "purple.400" : "purple.600"}
+              color={darkMode ? "purple.400" : "purple.600"}
+              variant="outline"
+              leftIcon={<VscCloudUpload />}
+              mt={1}
+              flex="auto"
+              onClick={async () => {
+                const file = await uploadFile();
+                if (!file) return;
+                handleUploadFile(file);
+              }}
+            >
+              Upload
+            </Button>
+            <Button
+              size="sm"
+              colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
+              borderColor={darkMode ? "purple.400" : "purple.600"}
+              color={darkMode ? "purple.400" : "purple.600"}
+              variant="outline"
+              leftIcon={<VscCloudDownload />}
+              mt={1}
+              flex="auto"
+              onClick={(event) => {
+                event.preventDefault();
+                handleDownloadFile();
+              }}
+            >
+              Download
+            </Button>
           </ButtonGroup>
 
           <Heading mt={4} mb={1.5} size="sm">
