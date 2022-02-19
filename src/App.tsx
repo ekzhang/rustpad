@@ -189,7 +189,7 @@ function App() {
     });
   }
 
-  const setText = useCallback((newText: string) => {
+  function setText(newText: string) {
     const model = editor?.getModel();
     if (!model || !editor) return;
     model.pushEditOperations(
@@ -203,7 +203,7 @@ function App() {
       () => null
     );
     editor.setPosition({ column: 0, lineNumber: 0});
-  }, [editor]);
+  };
 
   function handleLoadSample() {
     setText(rustpadRaw);
@@ -212,14 +212,14 @@ function App() {
     }
   }
 
-  const handleUploadFile = useCallback(async (file: File) => {
+  async function handleUploadFile(file: File) {
     const text = await file.text();
     setText(text);
     const newLanguage = getLanguage(file.name);
     if (newLanguage !== language) handleChangeLanguage(newLanguage);
-  }, [language]);
+  };
 
-  const handleDownloadFile = useCallback(() => {
+  function handleDownloadFile() {
     const model = editor?.getModel();
     if (!model || !editor) return;
     const text = model.getValue();
@@ -229,7 +229,7 @@ function App() {
     const url = URL.createObjectURL(file);
     downloadUri(url, fileName);
     URL.revokeObjectURL(url);
-  }, [editor, language]);
+  };
 
   useKeyboardCtrlIntercept('s', handleDownloadFile);
 
