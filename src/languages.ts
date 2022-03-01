@@ -83,45 +83,57 @@ export const languages = [
 
 export type Language = typeof languages[number];
 
-/** The default extension of the known programming languages (to be used on download) */
-const defaultExtensions: { [key in Language]?: string } = {
-  typescript: "ts",
-  rust: "rs",
-  cpp: "cpp",
-  yaml: "yaml",
-  html: "html",
+type LanguageExtensionDecls = {
+  /** the default extension (for download and to recognize uploads)*/
+  extension: string,
+  /** Other known extensions for that language (to detect it in uploads etc) */
+  aliasExtensions: string[],
+};
+
+const languagesAndExtensions: {[key in Language]?: LanguageExtensionDecls} = {
+  typescript: {
+    extension: "ts",
+    aliasExtensions: ["tsx"],
+  },
+  rust: {
+    extension: "rs",
+    aliasExtensions: []
+  },
+  cpp: {
+    extension: "cpp",
+    aliasExtensions: ["cxx"],
+  },
+  yaml: {
+    extension: "yaml",
+    aliasExtensions:["yml"],
+  },
+  html: {
+    extension: "html",
+    aliasExtensions: ["htm"],
+  },
 };
 
 type LanguageExtensions = { [key in string]: Language };
 
-/**
- * Additional extensions that refer to known languages, to detect filetype on upload.
- * NO NEED to add the default file extensions.
- */
-const additionalExtensionsToLanguage: LanguageExtensions = {
-  yml: "yaml",
-  cc: "cpp",
-};
-
 /** Used on download to determine file extension. */
 export function getFileExtension(language: Language) {
-  return defaultExtensions[language] ?? "txt";
+  return languagesAndExtensions[language as keyof typeof languagesAndExtensions]?.extension ?? "txt";
 }
 
-/** invert key value */
-const defaultExtensionsToLanguage = Object.entries(defaultExtensions).reduce(
-  (defaultExtensionsToLanguage, [key, value]) => {
-    return {
-      ...defaultExtensionsToLanguage,
-      [value]: key as Language,
-    };
-  },
-  {} as LanguageExtensions
-);
+const defaultExtensionsToLanguage = {} as LanguageExtensions;
+
+const additionalExtensionsToLanguage = {} as LanguageExtensions;
+
+Object.entries(languagesAndExtensions).forEach(([language, {extension, aliasExtensions}]) => {
+  defaultExtensionsToLanguage[extension] = language as Language;
+  aliasExtensions.forEach((aliasExtension) => {
+    additionalExtensionsToLanguage[aliasExtension] = language as Language;
+  })
+})
 
 const extensionsToLanguage: LanguageExtensions = {
-  ...defaultExtensionsToLanguage,
   ...additionalExtensionsToLanguage,
+  ...defaultExtensionsToLanguage,
 };
 
 /** Used to detect programming language on upload based on file name */
