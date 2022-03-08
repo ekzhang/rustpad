@@ -1,47 +1,33 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
-  Button,
   Container,
   Flex,
   Heading,
   HStack,
   Icon,
-  Input,
-  InputGroup,
-  ButtonGroup,
-  InputRightElement,
-  Link,
-  Select,
-  Stack,
   Switch,
   Text,
-  useToast,
 } from "@chakra-ui/react";
-import {
-  VscChevronRight,
-  VscCloudDownload,
-  VscCloudUpload,
-  VscFolderOpened,
-  VscGist,
-  VscRepoPull,
-} from "react-icons/vsc";
+import { VscChevronRight, VscFolderOpened, VscGist } from "react-icons/vsc";
 import useStorage from "use-local-storage-state";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
 import rustpadRaw from "../rustpad-server/src/rustpad.rs?raw";
-import {
-  getFileExtension,
-  getLanguage,
-  Language,
-  languages,
-} from "./languages";
+import { getFileExtension, getLanguage, Language } from "./languages";
 import animals from "./animals.json";
 import Rustpad, { UserInfo } from "./rustpad";
 import useHash from "./useHash";
-import ConnectionStatus from "./ConnectionStatus";
+import ConnectionStatus, { ConnectionStatusState } from "./ConnectionStatus";
 import Footer from "./Footer";
-import User from "./User";
+import { generateHue, DisplayUsers } from "./sidebarComponents/DisplayUsers";
+import { ShareLink } from "./sidebarComponents/ShareLink";
+import { LanguageSelection } from "./sidebarComponents/LanguageSelection";
+import { About } from "./sidebarComponents/About";
+import { DownloadUpload } from "./sidebarComponents/DownloadUpload";
+import { useCustomToasts } from "./useCustomToasts";
+import { useKeyboardCtrlIntercept } from "./useKeyboardCtrlIntercept";
+import { downloadText } from "./downloadUploadWrappers";
 
 function getWsUri(id: string) {
   return (
@@ -51,72 +37,15 @@ function getWsUri(id: string) {
   );
 }
 
-function useKeyboardCtrlIntercept(
-  key: string,
-  reaction: (event: KeyboardEvent) => unknown
-) {
-  useEffect(() => {
-    const wrappedReaction: typeof reaction = (event) => {
-      if (!(event.metaKey || event.ctrlKey)) return;
-      if (event.key.toLowerCase() !== key.toLowerCase()) return;
-      event.preventDefault();
-      reaction(event);
-    };
-    const controller = new AbortController();
-    window.addEventListener("keydown", wrappedReaction, {signal: controller.signal});
-
-    return () => controller.abort();
-  }, [key, reaction]);
-}
-
 function generateName() {
   return "Anonymous " + animals[Math.floor(Math.random() * animals.length)];
 }
 
-function generateHue() {
-  return Math.floor(Math.random() * 360);
-}
-
-/**
- * This appears to still be the best way to download a file while suggesting a filename.
- *
- * According to [mdn](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download)
- * the download attribute gets ignored on URIs that are not either `same-origin` or use the `blob` or `data` schemes.
- */
-function downloadUri(uri: string, filename: string) {
-  const downloadAnchor = document.createElement("a");
-  downloadAnchor.download = filename;
-  downloadAnchor.href = uri;
-  downloadAnchor.click();
-}
-
-function downloadText(text: string, fileName: string) {
-  const file = new File([text], fileName);
-  const url = URL.createObjectURL(file);
-  downloadUri(url, fileName);
-  URL.revokeObjectURL(url)
-}
-
-async function getFileUploadWithDialog() {
-  const uploadInput = document.createElement("input");
-  uploadInput.type = "file";
-  uploadInput.click();
-  const controller = new AbortController();
-  // await the user-input (selecting the file)
-  await new Promise((resolve) => uploadInput.addEventListener("change", resolve, {signal: controller.signal}));
-  controller.abort();
-  console.log("reached", uploadInput.files?.length);
-  const files = uploadInput.files;
-  if (files?.length !== 1) return;
-  return files[0];
-}
-
 function App() {
-  const toast = useToast();
+  const toasts = useCustomToasts();
   const [language, setLanguage] = useState<Language>("plaintext");
-  const [connection, setConnection] = useState<
-    "connected" | "disconnected" | "desynchronized"
-  >("disconnected");
+  const [connection, setConnection] =
+    useState<ConnectionStatusState>("disconnected");
   const [users, setUsers] = useState<Record<number, UserInfo>>({});
   const [name, setName] = useStorage("name", generateName);
   const [hue, setHue] = useStorage("hue", generateHue);
@@ -137,18 +66,9 @@ function App() {
         onDisconnected: () => setConnection("disconnected"),
         onDesynchronized: () => {
           setConnection("desynchronized");
-          toast({
-            title: "Desynchronized with server",
-            description: "Please save your work and refresh the page.",
-            status: "error",
-            duration: null,
-          });
+          toasts.desynchronized();
         },
-        onChangeLanguage: (language) => {
-          if (languages.includes(language)) {
-            setLanguage(language);
-          }
-        },
+        onChangeLanguage: setLanguage,
         onChangeUsers: setUsers,
       });
       return () => {
@@ -156,45 +76,13 @@ function App() {
         rustpad.current = undefined;
       };
     }
-  }, [id, editor, toast, setUsers]);
+  }, [id, editor, toasts, setUsers]);
 
   useEffect(() => {
     if (connection === "connected") {
       rustpad.current?.setInfo({ name, hue });
     }
   }, [connection, name, hue]);
-
-  function handleChangeLanguage(language: Language) {
-    setLanguage(language);
-    if (rustpad.current?.setLanguage(language)) {
-      toast({
-        title: "Language updated",
-        description: (
-          <>
-            All users are now editing in{" "}
-            <Text as="span" fontWeight="semibold">
-              {language}
-            </Text>
-            .
-          </>
-        ),
-        status: "info",
-        duration: 2000,
-        isClosable: true,
-      });
-    }
-  }
-
-  async function handleCopy() {
-    await navigator.clipboard.writeText(`${window.location.origin}/#${id}`);
-    toast({
-      title: "Copied!",
-      description: "Link copied to clipboard",
-      status: "success",
-      duration: 2000,
-      isClosable: true,
-    });
-  }
 
   function setText(newText: string) {
     const model = editor?.getModel();
@@ -212,33 +100,29 @@ function App() {
     editor.setPosition({ column: 0, lineNumber: 0 });
   }
 
-  function handleLoadSample() {
-    setText(rustpadRaw);
-    if (language !== "rust") {
-      handleChangeLanguage("rust");
-    }
-  }
-
-  async function handleUploadFile(file: File) {
+  async function uploadFile(file: File) {
     const text = await file.text();
     setText(text);
     const newLanguage = getLanguage(file.name);
-    if (newLanguage !== language) handleChangeLanguage(newLanguage);
+    setLanguage(newLanguage);
+    toasts.fileUpload(name);
   }
 
-  function handleDownloadFile() {
+  function downloadFile() {
     const model = editor?.getModel();
-    if (!model || !editor) return;
-    downloadText(
-      model.getValue(),
-      `rustpad.${getFileExtension(language)}`,
-    )
+    if (!model) return;
+    downloadText(model.getValue(), `rustpad.${getFileExtension(language)}`);
   }
 
-  useKeyboardCtrlIntercept("s", handleDownloadFile);
+  useKeyboardCtrlIntercept("s", downloadFile);
 
-  function handleDarkMode() {
-    setDarkMode(!darkMode);
+  function toggleDarkMode() {
+    setDarkMode((darkMode) => !darkMode);
+  }
+
+  function loadRustpadSourceSample() {
+    setText(rustpadRaw);
+    setLanguage("rust");
   }
 
   return (
@@ -255,7 +139,7 @@ function App() {
         if (dragItems.length !== 1) return;
         const file = dragItems[0].getAsFile();
         if (file === null) return;
-        handleUploadFile(file);
+        uploadFile(file);
       }}
     >
       <Box
@@ -281,147 +165,59 @@ function App() {
 
           <Flex justifyContent="space-between" mt={4} mb={1.5} w="full">
             <Heading size="sm">Dark Mode</Heading>
-            <Switch isChecked={darkMode} onChange={handleDarkMode} />
+            <Switch isChecked={darkMode} onChange={toggleDarkMode} />
           </Flex>
 
-          <Heading mt={4} mb={1.5} size="sm">
-            Language
-          </Heading>
-          <Select
-            size="sm"
-            bgColor={darkMode ? "#3c3c3c" : "white"}
-            borderColor={darkMode ? "#3c3c3c" : "white"}
-            value={language}
-            onChange={(event) =>
-              handleChangeLanguage(event.target.value as Language)
-            }
-          >
-            {languages.map((lang) => (
-              <option key={lang} value={lang} style={{ color: "black" }}>
-                {lang}
-              </option>
-            ))}
-          </Select>
-
-          <Heading mt={4} mb={1.5} size="sm">
-            Share Link
-          </Heading>
-          <InputGroup size="sm">
-            <Input
-              readOnly
-              pr="3.5rem"
-              variant="outline"
-              bgColor={darkMode ? "#3c3c3c" : "white"}
-              borderColor={darkMode ? "#3c3c3c" : "white"}
-              value={`${window.location.origin}/#${id}`}
-            />
-            <InputRightElement width="3.5rem">
-              <Button
-                h="1.4rem"
-                size="xs"
-                onClick={handleCopy}
-                _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
-                bgColor={darkMode ? "#575759" : "gray.200"}
-              >
-                Copy
-              </Button>
-            </InputRightElement>
-          </InputGroup>
-
-          <Heading mt={4} mb={1.5} size="sm">
-            Upload & Download
-          </Heading>
-          <Text>
-            You can also upload with drag&drop and downlod with Ctrl + S
-          </Text>
-          <ButtonGroup size="sm" display="flex">
-            <Button
-              size="sm"
-              colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
-              borderColor={darkMode ? "purple.400" : "purple.600"}
-              color={darkMode ? "purple.400" : "purple.600"}
-              variant="outline"
-              leftIcon={<VscCloudUpload />}
-              mt={1}
-              flex="auto"
-              onClick={async () => {
-                const file = await getFileUploadWithDialog();
-                if (!file) return;
-                handleUploadFile(file);
+          <SideBarGroup title="Language">
+            <LanguageSelection
+              {...{
+                language,
+                setLanguage,
+                darkMode,
               }}
-            >
-              Upload
-            </Button>
-            <Button
-              size="sm"
-              colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
-              borderColor={darkMode ? "purple.400" : "purple.600"}
-              color={darkMode ? "purple.400" : "purple.600"}
-              variant="outline"
-              leftIcon={<VscCloudDownload />}
-              mt={1}
-              flex="auto"
-              onClick={(event) => {
-                event.preventDefault();
-                handleDownloadFile();
-              }}
-            >
-              Download
-            </Button>
-          </ButtonGroup>
-
-          <Heading mt={4} mb={1.5} size="sm">
-            Active Users
-          </Heading>
-          <Stack spacing={0} mb={1.5} fontSize="sm">
-            <User
-              info={{ name, hue }}
-              isMe
-              onChangeName={(name) => name.length > 0 && setName(name)}
-              onChangeColor={() => setHue(generateHue())}
-              darkMode={darkMode}
             />
-            {Object.entries(users).map(([id, info]) => (
-              <User key={id} info={info} darkMode={darkMode} />
-            ))}
-          </Stack>
+          </SideBarGroup>
 
-          <Heading mt={4} mb={1.5} size="sm">
-            About
-          </Heading>
-          <Text fontSize="sm" mb={1.5}>
-            <strong>Rustpad</strong> is an open-source collaborative text editor
-            based on the <em>operational transformation</em> algorithm.
-          </Text>
-          <Text fontSize="sm" mb={1.5}>
-            Share a link to this pad with others, and they can edit from their
-            browser while seeing your changes in real time.
-          </Text>
-          <Text fontSize="sm" mb={1.5}>
-            Built using Rust and TypeScript. See the{" "}
-            <Link
-              color="blue.600"
-              fontWeight="semibold"
-              href="https://github.com/ekzhang/rustpad"
-              isExternal
-            >
-              GitHub repository
-            </Link>{" "}
-            for details.
-          </Text>
+          <SideBarGroup title="Share Link">
+            <ShareLink
+              {...{
+                id,
+                darkMode,
+              }}
+            />
+          </SideBarGroup>
 
-          <Button
-            size="sm"
-            colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
-            borderColor={darkMode ? "purple.400" : "purple.600"}
-            color={darkMode ? "purple.400" : "purple.600"}
-            variant="outline"
-            leftIcon={<VscRepoPull />}
-            mt={1}
-            onClick={handleLoadSample}
-          >
-            Read the code
-          </Button>
+          <SideBarGroup title="Upload and Download">
+            <DownloadUpload
+              {...{
+                uploadFile,
+                downloadFile,
+                darkMode,
+              }}
+            />
+          </SideBarGroup>
+
+          <SideBarGroup title="Active Users">
+            <DisplayUsers
+              {...{
+                users,
+                name,
+                setName,
+                hue,
+                setHue,
+                darkMode,
+              }}
+            />
+          </SideBarGroup>
+
+          <SideBarGroup title="About">
+            <About
+              {...{
+                loadRustpadSourceSample,
+                darkMode,
+              }}
+            />
+          </SideBarGroup>
         </Container>
         <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
           <HStack
@@ -454,6 +250,20 @@ function App() {
       </Flex>
       <Footer />
     </Flex>
+  );
+}
+
+function SideBarGroup({
+  title,
+  children,
+}: React.PropsWithChildren<{ title: string }>) {
+  return (
+    <>
+      <Heading mt={4} mb={1.5} size="sm">
+        {title}
+      </Heading>
+      {children}
+    </>
   );
 }
 

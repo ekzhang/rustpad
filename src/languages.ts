@@ -85,19 +85,19 @@ export type Language = typeof languages[number];
 
 type LanguageExtensionDecls = {
   /** the default extension (for download and to recognize uploads)*/
-  extension: string,
+  extension: string;
   /** Other known extensions for that language (to detect it in uploads etc) */
-  aliasExtensions: string[],
+  aliasExtensions: string[];
 };
 
-const languagesAndExtensions: {[key in Language]?: LanguageExtensionDecls} = {
+const languagesAndExtensions: { [key in Language]?: LanguageExtensionDecls } = {
   typescript: {
     extension: "ts",
     aliasExtensions: ["tsx"],
   },
   rust: {
     extension: "rs",
-    aliasExtensions: []
+    aliasExtensions: [],
   },
   cpp: {
     extension: "cpp",
@@ -105,7 +105,7 @@ const languagesAndExtensions: {[key in Language]?: LanguageExtensionDecls} = {
   },
   yaml: {
     extension: "yaml",
-    aliasExtensions:["yml"],
+    aliasExtensions: ["yml"],
   },
   html: {
     extension: "html",
@@ -117,19 +117,24 @@ type LanguageExtensions = { [key in string]: Language };
 
 /** Used on download to determine file extension. */
 export function getFileExtension(language: Language) {
-  return languagesAndExtensions[language as keyof typeof languagesAndExtensions]?.extension ?? "txt";
+  return (
+    languagesAndExtensions[language as keyof typeof languagesAndExtensions]
+      ?.extension ?? "txt"
+  );
 }
 
 const defaultExtensionsToLanguage = {} as LanguageExtensions;
 
 const additionalExtensionsToLanguage = {} as LanguageExtensions;
 
-Object.entries(languagesAndExtensions).forEach(([language, {extension, aliasExtensions}]) => {
-  defaultExtensionsToLanguage[extension] = language as Language;
-  aliasExtensions.forEach((aliasExtension) => {
-    additionalExtensionsToLanguage[aliasExtension] = language as Language;
-  })
-})
+Object.entries(languagesAndExtensions).forEach(
+  ([language, { extension, aliasExtensions }]) => {
+    defaultExtensionsToLanguage[extension] = language as Language;
+    aliasExtensions.forEach((aliasExtension) => {
+      additionalExtensionsToLanguage[aliasExtension] = language as Language;
+    });
+  }
+);
 
 const extensionsToLanguage: LanguageExtensions = {
   ...additionalExtensionsToLanguage,

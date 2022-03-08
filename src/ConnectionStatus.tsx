@@ -1,8 +1,13 @@
 import { HStack, Icon, Text } from "@chakra-ui/react";
 import { VscCircleFilled } from "react-icons/vsc";
 
+export type ConnectionStatusState =
+  | "connected"
+  | "disconnected"
+  | "desynchronized";
+
 type ConnectionStatusProps = {
-  connection: "connected" | "disconnected" | "desynchronized";
+  connection: ConnectionStatusState;
   darkMode: boolean;
 };
 

@@ -1,3 +1,6 @@
+import { Stack } from "@chakra-ui/layout";
+import "react";
+import { UserInfo } from "../rustpad";
 import {
   Button,
   ButtonGroup,
@@ -18,7 +21,6 @@ import {
 import { useRef } from "react";
 import { FaPalette } from "react-icons/fa";
 import { VscAccount } from "react-icons/vsc";
-import { UserInfo } from "./rustpad";
 
 type UserProps = {
   info: UserInfo;
@@ -109,4 +111,37 @@ function User({
   );
 }
 
-export default User;
+type DisplayUserProps = UserInfo & {
+  darkMode: boolean;
+  setName: (newName: string) => unknown;
+  setHue: (newHue: number) => unknown;
+  users: Record<number, UserInfo>;
+};
+
+export function generateHue() {
+  return Math.floor(Math.random() * 360);
+}
+
+export function DisplayUsers({
+  name,
+  hue,
+  setName,
+  setHue,
+  users,
+  darkMode,
+}: DisplayUserProps) {
+  return (
+    <Stack spacing={0} mb={1.5} fontSize="sm">
+      <User
+        info={{ name, hue }}
+        isMe
+        onChangeName={(name) => name.length > 0 && setName(name)}
+        onChangeColor={() => setHue(generateHue())}
+        darkMode={darkMode}
+      />
+      {Object.entries(users).map(([id, info]) => (
+        <User key={id} info={info} darkMode={darkMode} />
+      ))}
+    </Stack>
+  );
+}
