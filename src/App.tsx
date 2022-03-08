@@ -27,7 +27,7 @@ import { About } from "./sidebarComponents/About";
 import { DownloadUpload } from "./sidebarComponents/DownloadUpload";
 import { useCustomToasts } from "./useCustomToasts";
 import { useKeyboardCtrlIntercept } from "./useKeyboardCtrlIntercept";
-import { downloadText } from "./downloadUploadWrappers";
+import { downloadText } from "./downloadUploadHelpers";
 
 function getWsUri(id: string) {
   return (

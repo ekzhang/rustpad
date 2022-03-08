@@ -30,7 +30,6 @@ export async function getFileUploadWithDialog() {
     })
   );
   controller.abort();
-  console.log("reached", uploadInput.files?.length);
   const files = uploadInput.files;
   if (files?.length !== 1) return;
   return files[0];

@@ -17,6 +17,8 @@ export function LanguageSelection({
   const toasts = useCustomToasts();
   function handleChangeLanguage(language: Language) {
     setLanguage(language);
+    // TODO: Clear up whether its on purpose that the toast is only shown for the user changing the language,
+    // TODO: then figure out how to coordinate the setLanguage for the server with rustpad.setLanguage
     // if (rustpad.current?.setLanguage(language)) {
     toasts.languageChange(language);
     // }

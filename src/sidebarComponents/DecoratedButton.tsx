@@ -21,6 +21,8 @@ export function DecoratedButton({
       mt={1}
       flex="auto"
       onClick={onClick}
+      width="100%"
+      minWidth="100%"
     >
       {children}
     </Button>
