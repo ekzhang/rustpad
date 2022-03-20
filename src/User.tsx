@@ -15,38 +15,34 @@ import {
 import { FaPalette } from "react-icons/fa";
 import { VscAccount, VscClose, VscEdit } from "react-icons/vsc";
 import { UserInfo } from "./rustpad";
-import React from "react";
+import React, { useContext } from "react";
+import { ThemeContext } from "./Theme";
 
-type UserProps = {
-  info: UserInfo;
-  darkMode: boolean;
-};
-
-function makeColor(hue: number, darkMode: boolean): string {
+function makeColor(hue: number): string {
+  const darkMode = useContext(ThemeContext).darkMode
   return `hsl(${hue}, 90%, ${darkMode ? "70%" : "25%"})`;
 }
 
-function User({
-  info,
-  darkMode,
-}: UserProps) {
+function User({ name, hue }: UserInfo) {
 
   return (
     <HStack>
       <Icon as={VscAccount}></Icon>
-      <Text fontWeight="medium" color={makeColor(info.hue, darkMode)}>
-        {info.name}
+      <Text fontWeight="medium" color={makeColor(hue)}>
+        {name}
       </Text>
     </HStack>
   );
 }
 
-function EditableControls({ darkMode }: UserProps) {
+function EditableControls() {
   const {
     isEditing,
     getEditButtonProps,
     getCancelButtonProps,
   } = useEditableControls();
+
+  const darkMode = useContext(ThemeContext).darkMode;
 
   return isEditing ? (
     <IconButton aria-label="cancel" colorScheme={darkMode ? "white" : "gray"} size="xs" icon={<VscClose />} {...getCancelButtonProps()} />
@@ -59,17 +55,15 @@ type UserEditProps = {
   me: UserInfo;
   onChangeName: (name: string) => unknown;
   onChangeColor?: () => unknown;
-  darkMode: boolean;
 }
 
 function UserEdit({
   me,
   onChangeName,
   onChangeColor,
-  darkMode,
 }: UserEditProps) {
-  const colorScheme = darkMode ? "white" : "gray"
-
+  const theme = useContext(ThemeContext);
+  const colorScheme = theme.darkMode ? "white" : "gray"
 
   return (
     <Editable placeholder={me.name} defaultValue={me.name} submitOnBlur={true} onSubmit={onChangeName}>
@@ -79,17 +73,17 @@ function UserEdit({
             colorScheme={colorScheme}
             size="xxs"
             aria-label="change color"
-            color={makeColor(me.hue, darkMode)}
+            color={makeColor(me.hue)}
             icon={<FaPalette />}
             onClick={onChangeColor}></IconButton>
         </Tooltip>
-        <EditableInput fontWeight="medium" color={makeColor(me.hue, darkMode)} textAlign="left" maxLength={32} />
+        <EditableInput fontWeight="medium" color={makeColor(me.hue)} textAlign="left" maxLength={32} />
         <Tooltip label="Edit your display name">
-          <EditablePreview fontWeight="medium" color={makeColor(me.hue, darkMode)} textAlign="left" />
+          <EditablePreview fontWeight="medium" color={makeColor(me.hue)} textAlign="left" />
         </Tooltip>
         <YouLabel />
         <Spacer />
-        <EditableControls info={me} darkMode={darkMode} />
+        <EditableControls />
       </HStack >
     </Editable>
   );
@@ -103,17 +97,16 @@ function YouLabel() {
   return <Box {...getEditButtonProps()} textAlign="left"> {isEditing ? "" : "(you)"}</Box>
 }
 
-function UserList({ users, me, onChangeName, onChangeColor, darkMode }: UserListProps) {
+function UserList({ users, me, onChangeName, onChangeColor }: UserListProps) {
   return (
     <Stack spacing={0} mb={1.5} fontSize="sm">
       {Object.entries(users).map(([id, info]) => (
-        <User key={id} info={info} darkMode={darkMode} />
+        <User key={id} {...info} />
       ))}
       <UserEdit
         me={me}
         onChangeName={onChangeName}
         onChangeColor={onChangeColor}
-        darkMode={darkMode}
       />
     </Stack>
   )

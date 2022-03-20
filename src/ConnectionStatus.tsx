@@ -2,10 +2,9 @@ import { Tooltip, Spinner } from "@chakra-ui/react";
 
 type ConnectionStatusProps = {
   connection: "connected" | "disconnected" | "desynchronized";
-  darkMode: boolean;
 };
 
-function ConnectionStatus({ connection, darkMode }: ConnectionStatusProps) {
+function ConnectionStatus({ connection }: ConnectionStatusProps) {
   return (
     <Tooltip label={
       {

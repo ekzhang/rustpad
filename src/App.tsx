@@ -17,7 +17,7 @@ import {
 } from "@chakra-ui/react";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { HiUserGroup, HiUser } from "react-icons/hi";
 import { FaMoon, FaSun } from "react-icons/fa";
 import {
@@ -36,6 +36,7 @@ import Rustpad, { UserInfo } from "./rustpad";
 import useHash from "./useHash";
 import UserList from "./User";
 import React, { Component } from 'react';
+import { ThemeContext, DarkModeToggle } from "./Theme";
 
 
 function getWsUri(id: string) {
@@ -65,6 +66,8 @@ function App() {
   const [hue, setHue] = useStorage("hue", generateHue);
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
   const [darkMode, setDarkMode] = useStorage("darkMode", () => false);
+
+
   const rustpad = useRef<Rustpad>();
   const id = useHash();
 
@@ -142,7 +145,7 @@ function App() {
   }
 
 
-  function handleDarkMode() {
+  function toggleDarkMode() {
     setDarkMode(!darkMode);
   }
 
@@ -172,141 +175,120 @@ function App() {
 
 
   return (
-    <Flex
-      direction="column"
-      h="100vh"
-      overflow="hidden"
-      bgColor={darkMode ? "#1e1e1e" : "white"}
-      color={darkMode ? "#cbcaca" : "inherit"}
-    >
-
-      <Box
-        flexShrink={2}
-        bgColor={darkMode ? "#333333" : "#e8e8e8"}
-        color={darkMode ? "#cccccc" : "#383838"}
-        textAlign="center"
-        fontSize="sm"
+    <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
+      <Flex
+        direction="column"
+        h="100vh"
+        overflow="hidden"
+        bgColor={darkMode ? "#1e1e1e" : "white"}
+        color={darkMode ? "#cbcaca" : "inherit"}
       >
-        <Flex spacing={0} px={2} alignItems="center">
-          <ConnectionStatus darkMode={darkMode} connection={connection} />
 
-          <Button
-            h="1.4rem"
-            fontWeight="normal"
-            rounded="none"
-            _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
-            bgColor={darkMode ? "#333333" : "gray.200"}
-            px={2}
-            onClick={aboutDrawer.onOpen}
-          >
-            Rustpad
-          </Button>
-
-          <Tooltip label="Syntax highlighting">
-            <Select
-              maxWidth="10em"
-              size="xs"
-              bgColor={darkMode ? "#3c3c3c" : "white"}
-              _hover={{ bgColor: darkMode ? "#575757" : "dddddd" }}
-              borderColor={darkMode ? "#3c3c3c" : "white"}
-              value={language}
-              onChange={(event) => handleChangeLanguage(event.target.value)}
-
-            >
-              {languages.map((lang) => (
-                <option key={lang} value={lang} style={{ color: "black" }}>
-                  {lang}
-                </option>
-              ))}
-            </Select>
-          </Tooltip>
-          <Spacer />
-          <Users
-            users={users}
-            darkMode={darkMode}
-            me={{ name, hue }}
-            setName={setName}
-            setHue={setHue}
-            id={id}
-            handleCopy={handleCopy}
-          />
-          <DarkModeToggle darkMode={darkMode} toggle={handleDarkMode} />
-        </Flex>
-      </Box >
-      <Flex flex="1 0" minH={0}>
-
-        <Drawer
-          isOpen={aboutDrawer.isOpen}
-          onClose={aboutDrawer.onClose}
-          placement="left"
+        <Box
+          flexShrink={2}
+          bgColor={darkMode ? "#333333" : "#e8e8e8"}
+          color={darkMode ? "#cccccc" : "#383838"}
+          textAlign="center"
+          fontSize="sm"
         >
-          <AboutDrawer loadSample={handleLoadSample} darkMode={darkMode} />
-        </Drawer>
-        <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
-          <HStack
-            h={6}
-            spacing={1}
-            color="#888888"
-            fontWeight="medium"
-            fontSize="13px"
-            px={3.5}
-            flexShrink={0}
-          >
-            <Icon as={VscFolderOpened} fontSize="md" color="blue.500" />
-            <Text>rustpad</Text>
-            <Icon as={VscChevronRight} fontSize="md" />
-            <Link onClick={handleCopy} color="#bbbbbb" _hover={{ color: "#ffffff" }} >
-              <HStack spacing={1} >
-                <Icon as={VscGist} fontSize="md" color="purple.500" />
-                <Text>{id}</Text>
-                <Icon as={VscLink} fontSize="md" color="grey.500" />
-              </HStack>
-            </Link>
-          </HStack>
-          <Box flex={1} minH={0}>
-            <Editor
-              theme={darkMode ? "vs-dark" : "vs"}
-              language={language}
-              options={{
-                automaticLayout: true,
-                fontSize: 13,
-              }}
-              onMount={(editor) => setEditor(editor)}
+          <Flex spacing={0} px={2} alignItems="center">
+            <ConnectionStatus connection={connection} />
+
+            <Button
+              h="1.4rem"
+              fontWeight="normal"
+              rounded="none"
+              _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
+              bgColor={darkMode ? "#333333" : "gray.200"}
+              px={2}
+              onClick={aboutDrawer.onOpen}
+            >
+              Rustpad
+            </Button>
+
+            <Tooltip label="Syntax highlighting">
+              <Select
+                maxWidth="10em"
+                size="xs"
+                bgColor={darkMode ? "#3c3c3c" : "white"}
+                _hover={{ bgColor: darkMode ? "#575757" : "dddddd" }}
+                borderColor={darkMode ? "#3c3c3c" : "white"}
+                value={language}
+                onChange={(event) => handleChangeLanguage(event.target.value)}
+
+              >
+                {languages.map((lang) => (
+                  <option key={lang} value={lang} style={{ color: "black" }}>
+                    {lang}
+                  </option>
+                ))}
+              </Select>
+            </Tooltip>
+            <Spacer />
+            <Users
+              users={users}
+              me={{ name, hue }}
+              setName={setName}
+              setHue={setHue}
+              id={id}
+              handleCopy={handleCopy}
             />
-          </Box>
+            <DarkModeToggle />
+          </Flex>
+        </Box >
+        <Flex flex="1 0" minH={0}>
+
+          <Drawer
+            isOpen={aboutDrawer.isOpen}
+            onClose={aboutDrawer.onClose}
+            placement="left"
+          >
+            <AboutDrawer loadSample={handleLoadSample} />
+          </Drawer>
+          <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
+            <HStack
+              h={6}
+              spacing={1}
+              color="#888888"
+              fontWeight="medium"
+              fontSize="13px"
+              px={3.5}
+              flexShrink={0}
+            >
+              <Icon as={VscFolderOpened} fontSize="md" color="blue.500" />
+              <Text>rustpad</Text>
+              <Icon as={VscChevronRight} fontSize="md" />
+              <Link onClick={handleCopy} color="#bbbbbb" _hover={{ color: "#ffffff" }} >
+                <HStack spacing={1} >
+                  <Icon as={VscGist} fontSize="md" color="purple.500" />
+                  <Text>{id}</Text>
+                  <Icon as={VscLink} fontSize="md" color="grey.500" />
+                </HStack>
+              </Link>
+            </HStack>
+            <Box flex={1} minH={0}>
+              <Editor
+                theme={darkMode ? "vs-dark" : "vs"}
+                language={language}
+                options={{
+                  automaticLayout: true,
+                  fontSize: 13,
+                }}
+                onMount={(editor) => setEditor(editor)}
+              />
+            </Box>
+          </Flex>
         </Flex>
-      </Flex>
-      <Footer />
-    </Flex >
+        <Footer />
+      </Flex >
+    </ThemeContext.Provider>
   );
 }
 
 export default App;
 
-type DarkModeProps = {
-  darkMode: boolean;
-  toggle: () => unknown;
-}
-
-function DarkModeToggle({ darkMode, toggle }: DarkModeProps) {
-  return (
-    <Tooltip label="Toggle dark mode">
-      <IconButton
-        aria-label="Toggle dark mode"
-        size="xs"
-        rounded="none"
-        onClick={toggle}
-        bgColor={darkMode ? "#333333" : "#e8e8e8"}
-        _hover={{ bg: darkMode ? "#575757" : "gray.200" }}
-        icon={darkMode ? <FaSun /> : <FaMoon />}
-      />
-    </Tooltip>
-  )
-}
-
 type UsersProps = {
   users: Record<number, UserInfo>;
-  darkMode: boolean;
   me: UserInfo;
   setName: (name: string) => unknown;
   setHue: (hue: number) => unknown;
@@ -315,11 +297,12 @@ type UsersProps = {
 };
 
 
-function Users({ users, darkMode, me, setName, setHue, id, handleCopy }: UsersProps) {
+function Users({ users, me, setName, setHue, id, handleCopy }: UsersProps) {
   const [usersIsOpen, setUsersIsOpen] = useState(false)
   const open = () => setUsersIsOpen(!usersIsOpen)
   const close = () => setUsersIsOpen(false)
   const userCount = () => Object.entries(users).length
+  const darkMode = useContext(ThemeContext).darkMode;
 
   return (
     <Popover
@@ -360,7 +343,6 @@ function Users({ users, darkMode, me, setName, setHue, id, handleCopy }: UsersPr
             me={me}
             onChangeName={(name) => name.length > 0 && setName(name)}
             onChangeColor={() => setHue(generateHue())}
-            darkMode={darkMode}
           />
 
           <Heading mt={4} mb={1.5} size="sm">
@@ -396,11 +378,12 @@ function Users({ users, darkMode, me, setName, setHue, id, handleCopy }: UsersPr
 
 type AboutBoxProps = {
   loadSample: () => unknown;
-  darkMode: boolean;
 }
 
 
-function AboutDrawer({ darkMode, loadSample }: AboutBoxProps) {
+function AboutDrawer({ loadSample }: AboutBoxProps) {
+  const darkMode = useContext(ThemeContext).darkMode;
+
   return (
     <>
       <DrawerOverlay />
@@ -434,7 +417,7 @@ function AboutDrawer({ darkMode, loadSample }: AboutBoxProps) {
             for details.
           </Text>
 
-          <LoadSampleButton darkMode={darkMode} loadSample={loadSample} />
+          <LoadSampleButton loadSample={loadSample} />
 
         </DrawerBody>
       </DrawerContent>
@@ -442,9 +425,10 @@ function AboutDrawer({ darkMode, loadSample }: AboutBoxProps) {
   )
 }
 
-function LoadSampleButton({ darkMode, loadSample }: AboutBoxProps) {
+function LoadSampleButton({ loadSample }: AboutBoxProps) {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const cancelRef = useRef<HTMLButtonElement>(null)
+  const darkMode = useContext(ThemeContext).darkMode;
 
   return (
     <>
