@@ -1,5 +1,4 @@
-import { HStack, Icon, Text } from "@chakra-ui/react";
-import { VscCircleFilled } from "react-icons/vsc";
+import { Tooltip, Spinner } from "@chakra-ui/react";
 
 type ConnectionStatusProps = {
   connection: "connected" | "disconnected" | "desynchronized";
@@ -8,9 +7,16 @@ type ConnectionStatusProps = {
 
 function ConnectionStatus({ connection, darkMode }: ConnectionStatusProps) {
   return (
-    <HStack spacing={1}>
-      <Icon
-        as={VscCircleFilled}
+    <Tooltip label={
+      {
+        connected: "Connected",
+        disconnected: "Connecting...",
+        desynchronized: "Disconnected, please refresh",
+      }[connection]
+    }>
+      <Spinner
+        marginRight={2}
+        size="xs"
         color={
           {
             connected: "green.500",
@@ -18,21 +24,17 @@ function ConnectionStatus({ connection, darkMode }: ConnectionStatusProps) {
             desynchronized: "red.500",
           }[connection]
         }
-      />
-      <Text
-        fontSize="sm"
-        fontStyle="italic"
-        color={darkMode ? "gray.300" : "gray.600"}
-      >
-        {
+        bgColor={
           {
-            connected: "You are connected!",
-            disconnected: "Connecting to the server...",
-            desynchronized: "Disconnected, please refresh.",
+            connected: "green.500",
+            disconnected: "",
+            desynchronized: "",
           }[connection]
         }
-      </Text>
-    </HStack>
+        emptyColor={connection == "disconnected" ? 'transparent' : ''}
+        speed={connection == "disconnected" ? '0.5s' : '0s'}
+      />
+    </Tooltip>
   );
 }
 

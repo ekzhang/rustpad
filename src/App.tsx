@@ -1,39 +1,42 @@
-import { useEffect, useRef, useState } from "react";
 import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
   Box,
-  Button,
-  Container,
-  Flex,
+  Button, Container, Drawer, DrawerBody,
+  DrawerCloseButton, DrawerContent, DrawerHeader, DrawerOverlay, Flex,
   Heading,
   HStack,
-  Icon,
-  Input,
-  InputGroup,
-  InputRightElement,
-  Link,
-  Select,
-  Stack,
-  Switch,
-  Text,
-  useToast,
+  Icon, IconButton, Input, InputGroup, InputLeftElement, InputRightElement, Link,
+  Popover, PopoverCloseButton,
+  PopoverContent, PopoverTrigger,
+  Select, Spacer, Text, Tooltip, useDisclosure, useToast
 } from "@chakra-ui/react";
+import Editor from "@monaco-editor/react";
+import { editor } from "monaco-editor/esm/vs/editor/editor.api";
+import { useEffect, useRef, useState } from "react";
+import { HiUserGroup, HiUser } from "react-icons/hi";
+import { FaMoon, FaSun } from "react-icons/fa";
 import {
   VscChevronRight,
   VscFolderOpened,
   VscGist,
-  VscRepoPull,
+  VscLink, VscRepoPull
 } from "react-icons/vsc";
 import useStorage from "use-local-storage-state";
-import Editor from "@monaco-editor/react";
-import { editor } from "monaco-editor/esm/vs/editor/editor.api";
 import rustpadRaw from "../rustpad-server/src/rustpad.rs?raw";
-import languages from "./languages.json";
 import animals from "./animals.json";
-import Rustpad, { UserInfo } from "./rustpad";
-import useHash from "./useHash";
 import ConnectionStatus from "./ConnectionStatus";
 import Footer from "./Footer";
-import User from "./User";
+import languages from "./languages.json";
+import Rustpad, { UserInfo } from "./rustpad";
+import useHash from "./useHash";
+import UserList from "./User";
+import React, { Component } from 'react';
+
 
 function getWsUri(id: string) {
   return (
@@ -125,6 +128,8 @@ function App() {
     }
   }
 
+
+
   async function handleCopy() {
     await navigator.clipboard.writeText(`${window.location.origin}/#${id}`);
     toast({
@@ -136,7 +141,13 @@ function App() {
     });
   }
 
-  function handleLoadSample() {
+
+  function handleDarkMode() {
+    setDarkMode(!darkMode);
+  }
+
+
+  const handleLoadSample = () => {
     if (editor?.getModel()) {
       const model = editor.getModel()!;
       model.pushEditOperations(
@@ -156,9 +167,9 @@ function App() {
     }
   }
 
-  function handleDarkMode() {
-    setDarkMode(!darkMode);
-  }
+
+  const aboutDrawer = useDisclosure()
+
 
   return (
     <Flex
@@ -168,59 +179,201 @@ function App() {
       bgColor={darkMode ? "#1e1e1e" : "white"}
       color={darkMode ? "#cbcaca" : "inherit"}
     >
+
       <Box
-        flexShrink={0}
+        flexShrink={2}
         bgColor={darkMode ? "#333333" : "#e8e8e8"}
         color={darkMode ? "#cccccc" : "#383838"}
         textAlign="center"
         fontSize="sm"
-        py={0.5}
       >
-        Rustpad
-      </Box>
-      <Flex flex="1 0" minH={0}>
-        <Container
-          w="xs"
-          bgColor={darkMode ? "#252526" : "#f3f3f3"}
-          overflowY="auto"
-          maxW="full"
-          lineHeight={1.4}
-          py={4}
-        >
+        <Flex spacing={0} px={2} alignItems="center">
           <ConnectionStatus darkMode={darkMode} connection={connection} />
 
-          <Flex justifyContent="space-between" mt={4} mb={1.5} w="full">
-            <Heading size="sm">Dark Mode</Heading>
-            <Switch isChecked={darkMode} onChange={handleDarkMode} />
-          </Flex>
-
-          <Heading mt={4} mb={1.5} size="sm">
-            Language
-          </Heading>
-          <Select
-            size="sm"
-            bgColor={darkMode ? "#3c3c3c" : "white"}
-            borderColor={darkMode ? "#3c3c3c" : "white"}
-            value={language}
-            onChange={(event) => handleChangeLanguage(event.target.value)}
+          <Button
+            h="1.4rem"
+            fontWeight="normal"
+            rounded="none"
+            _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
+            bgColor={darkMode ? "#333333" : "gray.200"}
+            px={2}
+            onClick={aboutDrawer.onOpen}
           >
-            {languages.map((lang) => (
-              <option key={lang} value={lang} style={{ color: "black" }}>
-                {lang}
-              </option>
-            ))}
-          </Select>
+            Rustpad
+          </Button>
+
+          <Tooltip label="Syntax highlighting">
+            <Select
+              maxWidth="10em"
+              size="xs"
+              bgColor={darkMode ? "#3c3c3c" : "white"}
+              _hover={{ bgColor: darkMode ? "#575757" : "dddddd" }}
+              borderColor={darkMode ? "#3c3c3c" : "white"}
+              value={language}
+              onChange={(event) => handleChangeLanguage(event.target.value)}
+
+            >
+              {languages.map((lang) => (
+                <option key={lang} value={lang} style={{ color: "black" }}>
+                  {lang}
+                </option>
+              ))}
+            </Select>
+          </Tooltip>
+          <Spacer />
+          <Users
+            users={users}
+            darkMode={darkMode}
+            me={{ name, hue }}
+            setName={setName}
+            setHue={setHue}
+            id={id}
+            handleCopy={handleCopy}
+          />
+          <DarkModeToggle darkMode={darkMode} toggle={handleDarkMode} />
+        </Flex>
+      </Box >
+      <Flex flex="1 0" minH={0}>
+
+        <Drawer
+          isOpen={aboutDrawer.isOpen}
+          onClose={aboutDrawer.onClose}
+          placement="left"
+        >
+          <AboutDrawer loadSample={handleLoadSample} darkMode={darkMode} />
+        </Drawer>
+        <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
+          <HStack
+            h={6}
+            spacing={1}
+            color="#888888"
+            fontWeight="medium"
+            fontSize="13px"
+            px={3.5}
+            flexShrink={0}
+          >
+            <Icon as={VscFolderOpened} fontSize="md" color="blue.500" />
+            <Text>rustpad</Text>
+            <Icon as={VscChevronRight} fontSize="md" />
+            <Link onClick={handleCopy} color="#bbbbbb" _hover={{ color: "#ffffff" }} >
+              <HStack spacing={1} >
+                <Icon as={VscGist} fontSize="md" color="purple.500" />
+                <Text>{id}</Text>
+                <Icon as={VscLink} fontSize="md" color="grey.500" />
+              </HStack>
+            </Link>
+          </HStack>
+          <Box flex={1} minH={0}>
+            <Editor
+              theme={darkMode ? "vs-dark" : "vs"}
+              language={language}
+              options={{
+                automaticLayout: true,
+                fontSize: 13,
+              }}
+              onMount={(editor) => setEditor(editor)}
+            />
+          </Box>
+        </Flex>
+      </Flex>
+      <Footer />
+    </Flex >
+  );
+}
+
+export default App;
+
+type DarkModeProps = {
+  darkMode: boolean;
+  toggle: () => unknown;
+}
+
+function DarkModeToggle({ darkMode, toggle }: DarkModeProps) {
+  return (
+    <Tooltip label="Toggle dark mode">
+      <IconButton
+        aria-label="Toggle dark mode"
+        size="xs"
+        rounded="none"
+        onClick={toggle}
+        bgColor={darkMode ? "#333333" : "#e8e8e8"}
+        _hover={{ bg: darkMode ? "#575757" : "gray.200" }}
+        icon={darkMode ? <FaSun /> : <FaMoon />}
+      />
+    </Tooltip>
+  )
+}
+
+type UsersProps = {
+  users: Record<number, UserInfo>;
+  darkMode: boolean;
+  me: UserInfo;
+  setName: (name: string) => unknown;
+  setHue: (hue: number) => unknown;
+  id: string;
+  handleCopy: () => unknown;
+};
+
+
+function Users({ users, darkMode, me, setName, setHue, id, handleCopy }: UsersProps) {
+  const [usersIsOpen, setUsersIsOpen] = useState(false)
+  const open = () => setUsersIsOpen(!usersIsOpen)
+  const close = () => setUsersIsOpen(false)
+  const userCount = () => Object.entries(users).length
+
+  return (
+    <Popover
+      isOpen={usersIsOpen}
+      onClose={close}
+      placement='bottom'
+      closeOnBlur={false}
+    >
+      <PopoverTrigger>
+        <Button size="xs"
+          onClick={open}
+          rounded="none"
+          bgColor={
+            usersIsOpen ?
+              (darkMode ? "#444444" : "#dddddd") :
+              (darkMode ? "#333333" : "#e8e8e8")
+          }
+          _hover={{}} >
+          <Icon as={userCount() > 0 ? HiUserGroup : HiUser} />
+          <Text px={1}>{userCount() > 0 ?
+            (userCount() + " other editor" + (userCount() > 1 ? "s" : "")) :
+            "editing alone"}</Text>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        borderColor={darkMode ? "#222222" : "#999999"}
+        bgColor={darkMode ? "#333333" : "#e8e8e8"}
+        color={darkMode ? "#cbcaca" : "inherit"}
+        paddingBottom={5}
+      >
+        <PopoverCloseButton />
+        <Container>
+          <Heading mt={4} mb={1.5} size="sm">
+            Active Users
+          </Heading>
+          <UserList
+            users={users}
+            me={me}
+            onChangeName={(name) => name.length > 0 && setName(name)}
+            onChangeColor={() => setHue(generateHue())}
+            darkMode={darkMode}
+          />
 
           <Heading mt={4} mb={1.5} size="sm">
             Share Link
           </Heading>
           <InputGroup size="sm">
+            <InputLeftElement>
+              <Icon as={VscLink} color="grey.500" />
+            </InputLeftElement>
             <Input
               readOnly
               pr="3.5rem"
-              variant="outline"
-              bgColor={darkMode ? "#3c3c3c" : "white"}
-              borderColor={darkMode ? "#3c3c3c" : "white"}
+              variant="flushed"
               value={`${window.location.origin}/#${id}`}
             />
             <InputRightElement width="3.5rem">
@@ -235,26 +388,31 @@ function App() {
               </Button>
             </InputRightElement>
           </InputGroup>
+        </Container>
+      </PopoverContent>
+    </Popover>
+  )
+}
 
-          <Heading mt={4} mb={1.5} size="sm">
-            Active Users
-          </Heading>
-          <Stack spacing={0} mb={1.5} fontSize="sm">
-            <User
-              info={{ name, hue }}
-              isMe
-              onChangeName={(name) => name.length > 0 && setName(name)}
-              onChangeColor={() => setHue(generateHue())}
-              darkMode={darkMode}
-            />
-            {Object.entries(users).map(([id, info]) => (
-              <User key={id} info={info} darkMode={darkMode} />
-            ))}
-          </Stack>
+type AboutBoxProps = {
+  loadSample: () => unknown;
+  darkMode: boolean;
+}
 
-          <Heading mt={4} mb={1.5} size="sm">
-            About
-          </Heading>
+
+function AboutDrawer({ darkMode, loadSample }: AboutBoxProps) {
+  return (
+    <>
+      <DrawerOverlay />
+      <DrawerContent
+        bgColor={darkMode ? "#1e1e1e" : "white"}
+        color={darkMode ? "#cbcaca" : "inherit"}
+      >
+        <DrawerCloseButton />
+        <DrawerHeader>About <Link href="/">Rustpad</Link></DrawerHeader>
+
+        <DrawerBody>
+
           <Text fontSize="sm" mb={1.5}>
             <strong>Rustpad</strong> is an open-source collaborative text editor
             based on the <em>operational transformation</em> algorithm.
@@ -276,51 +434,64 @@ function App() {
             for details.
           </Text>
 
-          <Button
-            size="sm"
-            colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
-            borderColor={darkMode ? "purple.400" : "purple.600"}
-            color={darkMode ? "purple.400" : "purple.600"}
-            variant="outline"
-            leftIcon={<VscRepoPull />}
-            mt={1}
-            onClick={handleLoadSample}
-          >
-            Read the code
-          </Button>
-        </Container>
-        <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
-          <HStack
-            h={6}
-            spacing={1}
-            color="#888888"
-            fontWeight="medium"
-            fontSize="13px"
-            px={3.5}
-            flexShrink={0}
-          >
-            <Icon as={VscFolderOpened} fontSize="md" color="blue.500" />
-            <Text>documents</Text>
-            <Icon as={VscChevronRight} fontSize="md" />
-            <Icon as={VscGist} fontSize="md" color="purple.500" />
-            <Text>{id}</Text>
-          </HStack>
-          <Box flex={1} minH={0}>
-            <Editor
-              theme={darkMode ? "vs-dark" : "vs"}
-              language={language}
-              options={{
-                automaticLayout: true,
-                fontSize: 13,
-              }}
-              onMount={(editor) => setEditor(editor)}
-            />
-          </Box>
-        </Flex>
-      </Flex>
-      <Footer />
-    </Flex>
-  );
+          <LoadSampleButton darkMode={darkMode} loadSample={loadSample} />
+
+        </DrawerBody>
+      </DrawerContent>
+    </>
+  )
 }
 
-export default App;
+function LoadSampleButton({ darkMode, loadSample }: AboutBoxProps) {
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const cancelRef = useRef<HTMLButtonElement>(null)
+
+  return (
+    <>
+      <Button
+        size="sm"
+        colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
+        borderColor={darkMode ? "purple.400" : "purple.600"}
+        color={darkMode ? "purple.400" : "purple.600"}
+        variant="outline"
+        leftIcon={<VscRepoPull />}
+        mt={1}
+        onClick={onOpen}
+      >
+        Read the code
+      </Button>
+
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent
+
+            bgColor={darkMode ? "#333333" : "#e8e8e8"}
+            color={darkMode ? "#cccccc" : "#383838"}
+          >
+            <AlertDialogHeader fontSize='lg' fontWeight='bold'>
+              Load Rustpad code
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure? This will overwrite the current session.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button
+                colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"} ref={cancelRef} onClick={onClose}>
+                Cancel
+              </Button>
+              <Button colorScheme='red' onClick={() => { loadSample(); onClose() }} ml={3}>
+                Yes
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </>
+  )
+}

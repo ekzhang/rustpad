@@ -1,112 +1,122 @@
 import {
-  Button,
-  ButtonGroup,
+  Editable,
+  EditablePreview,
+  EditableInput,
   HStack,
   Icon,
-  Input,
-  Popover,
-  PopoverArrow,
-  PopoverBody,
-  PopoverCloseButton,
-  PopoverContent,
-  PopoverFooter,
-  PopoverHeader,
-  PopoverTrigger,
+  Spacer,
+  Stack,
   Text,
-  useDisclosure,
+  useEditableControls,
+  IconButton,
+  Tooltip,
+  Box,
 } from "@chakra-ui/react";
-import { useRef } from "react";
 import { FaPalette } from "react-icons/fa";
-import { VscAccount } from "react-icons/vsc";
+import { VscAccount, VscClose, VscEdit } from "react-icons/vsc";
 import { UserInfo } from "./rustpad";
+import React from "react";
 
 type UserProps = {
   info: UserInfo;
-  isMe?: boolean;
-  onChangeName?: (name: string) => unknown;
-  onChangeColor?: () => unknown;
   darkMode: boolean;
 };
 
+function makeColor(hue: number, darkMode: boolean): string {
+  return `hsl(${hue}, 90%, ${darkMode ? "70%" : "25%"})`;
+}
+
 function User({
   info,
-  isMe = false,
-  onChangeName,
-  onChangeColor,
   darkMode,
 }: UserProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const nameColor = `hsl(${info.hue}, 90%, ${darkMode ? "70%" : "25%"})`;
   return (
-    <Popover
-      placement="right"
-      isOpen={isOpen}
-      onClose={onClose}
-      initialFocusRef={inputRef}
-    >
-      <PopoverTrigger>
-        <HStack
-          p={2}
-          rounded="md"
-          _hover={{
-            bgColor: darkMode ? "#464647" : "gray.200",
-            cursor: "pointer",
-          }}
-          onClick={() => isMe && onOpen()}
-        >
-          <Icon as={VscAccount} />
-          <Text fontWeight="medium" color={nameColor}>
-            {info.name}
-          </Text>
-          {isMe && <Text>(you)</Text>}
-        </HStack>
-      </PopoverTrigger>
-      <PopoverContent
-        bgColor={darkMode ? "#333333" : "white"}
-        borderColor={darkMode ? "#464647" : "gray.200"}
-      >
-        <PopoverHeader
-          fontWeight="semibold"
-          borderColor={darkMode ? "#464647" : "gray.200"}
-        >
-          Update Info
-        </PopoverHeader>
-        <PopoverArrow bgColor={darkMode ? "#333333" : "white"} />
-        <PopoverCloseButton />
-        <PopoverBody borderColor={darkMode ? "#464647" : "gray.200"}>
-          <Input
-            ref={inputRef}
-            mb={2}
-            value={info.name}
-            maxLength={25}
-            onChange={(event) => onChangeName?.(event.target.value)}
-          />
-          <Button
-            size="sm"
-            w="100%"
-            leftIcon={<FaPalette />}
-            colorScheme={darkMode ? "whiteAlpha" : "gray"}
-            onClick={onChangeColor}
-          >
-            Change Color
-          </Button>
-        </PopoverBody>
-        <PopoverFooter
-          d="flex"
-          justifyContent="flex-end"
-          borderColor={darkMode ? "#464647" : "gray.200"}
-        >
-          <ButtonGroup size="sm">
-            <Button colorScheme="blue" onClick={onClose}>
-              Done
-            </Button>
-          </ButtonGroup>
-        </PopoverFooter>
-      </PopoverContent>
-    </Popover>
+    <HStack>
+      <Icon as={VscAccount}></Icon>
+      <Text fontWeight="medium" color={makeColor(info.hue, darkMode)}>
+        {info.name}
+      </Text>
+    </HStack>
   );
 }
 
-export default User;
+function EditableControls({ darkMode }: UserProps) {
+  const {
+    isEditing,
+    getEditButtonProps,
+    getCancelButtonProps,
+  } = useEditableControls();
+
+  return isEditing ? (
+    <IconButton aria-label="cancel" colorScheme={darkMode ? "white" : "gray"} size="xs" icon={<VscClose />} {...getCancelButtonProps()} />
+  ) : (
+    <IconButton aria-label="edit" colorScheme={darkMode ? "white" : "gray"} size="xs" icon={<VscEdit />} {...getEditButtonProps()} />
+  )
+}
+
+type UserEditProps = {
+  me: UserInfo;
+  onChangeName: (name: string) => unknown;
+  onChangeColor?: () => unknown;
+  darkMode: boolean;
+}
+
+function UserEdit({
+  me,
+  onChangeName,
+  onChangeColor,
+  darkMode,
+}: UserEditProps) {
+  const colorScheme = darkMode ? "white" : "gray"
+
+
+  return (
+    <Editable placeholder={me.name} defaultValue={me.name} submitOnBlur={true} onSubmit={onChangeName}>
+      <HStack>
+        <Tooltip label="Change your color">
+          <IconButton
+            colorScheme={colorScheme}
+            size="xxs"
+            aria-label="change color"
+            color={makeColor(me.hue, darkMode)}
+            icon={<FaPalette />}
+            onClick={onChangeColor}></IconButton>
+        </Tooltip>
+        <EditableInput fontWeight="medium" color={makeColor(me.hue, darkMode)} textAlign="left" maxLength={32} />
+        <Tooltip label="Edit your display name">
+          <EditablePreview fontWeight="medium" color={makeColor(me.hue, darkMode)} textAlign="left" />
+        </Tooltip>
+        <YouLabel />
+        <Spacer />
+        <EditableControls info={me} darkMode={darkMode} />
+      </HStack >
+    </Editable>
+  );
+}
+type UserListProps = {
+  users: Record<number, UserInfo>;
+} & UserEditProps;
+
+function YouLabel() {
+  const { isEditing, getEditButtonProps } = useEditableControls()
+  return <Box {...getEditButtonProps()} textAlign="left"> {isEditing ? "" : "(you)"}</Box>
+}
+
+function UserList({ users, me, onChangeName, onChangeColor, darkMode }: UserListProps) {
+  return (
+    <Stack spacing={0} mb={1.5} fontSize="sm">
+      {Object.entries(users).map(([id, info]) => (
+        <User key={id} info={info} darkMode={darkMode} />
+      ))}
+      <UserEdit
+        me={me}
+        onChangeName={onChangeName}
+        onChangeColor={onChangeColor}
+        darkMode={darkMode}
+      />
+    </Stack>
+  )
+}
+
+export default UserList;
