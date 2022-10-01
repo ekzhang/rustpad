@@ -20,6 +20,7 @@ sqlx = { version = "0.5.9", features = ["runtime-tokio-rustls", "sqlite"] }
 tokio = { version = "1.6.1", features = ["full", "test-util"] }
 tokio-stream = "0.1.6"
 warp = "0.3.1"
+rand = "0.8"
 
 [dev-dependencies]
 tempfile = "3.2.0"
