@@ -49,10 +49,13 @@ impl Database {
     pub async fn store(&self, document_id: &str, document: &PersistedDocument) -> Result<()> {
         let result = sqlx::query(
             r#"
-INSERT OR REPLACE INTO
+INSERT INTO
     document (id, text, language)
 VALUES
-    ($1, $2, $3)"#,
+    ($1, $2, $3)
+ON CONFLICT(id) DO UPDATE SET
+    text = excluded.text,
+    language = excluded.language"#,
         )
         .bind(document_id)
         .bind(&document.text)
