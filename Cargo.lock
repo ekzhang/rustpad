@@ -1067,6 +1067,7 @@ dependencies = [
  "operational-transform",
  "parking_lot",
  "pretty_env_logger",
+ "rand 0.8.3",
  "serde",
  "serde_json",
  "sqlx",
