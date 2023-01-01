@@ -2,7 +2,7 @@
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/ekzhang/rustpad)](https://hub.docker.com/r/ekzhang/rustpad/)
 [![Docker Image Size](https://img.shields.io/docker/image-size/ekzhang/rustpad/latest)](https://hub.docker.com/r/ekzhang/rustpad/)
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/ekzhang/rustpad/CI)](https://github.com/ekzhang/rustpad/actions/workflows/ci.yml)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/ekzhang/rustpad/ci.yml)](https://github.com/ekzhang/rustpad/actions/workflows/ci.yml)
 
 **Rustpad** is an _efficient_ and _minimal_ open-source collaborative text
 editor based on the operational transformation algorithm. It lets users
