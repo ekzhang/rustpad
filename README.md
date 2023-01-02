@@ -111,8 +111,7 @@ open `http://localhost:3030` in your browser.
 docker run --rm -dp 3030:3030 ekzhang/rustpad
 ```
 
-We deploy a public instance of this image using
-[DigitalOcean App Platform](https://www.digitalocean.com/products/app-platform/).
+We deploy a public instance of this image using [Fly.io](https://fly.io/).
 
 ## In the media
 
