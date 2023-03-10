@@ -6,6 +6,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.40"
+bytes = "1.0"
 bytecount = "0.6"
 dashmap = "4.0.2"
 dotenv = "0.15.0"

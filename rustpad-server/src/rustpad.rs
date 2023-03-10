@@ -129,6 +129,27 @@ impl From<PersistedDocument> for Rustpad {
     }
 }
 
+
+impl From<(&String, &String)> for Rustpad {
+    fn from(create: (&String, &String)) -> Self {
+        let language = create.0;
+        let text = create.1;
+        let mut operation = OperationSeq::default();
+        operation.insert(text);
+
+        let rustpad = Self::default();
+        {
+            let mut state = rustpad.state.write();
+            state.text = text.to_string();
+            state.language = Some(language.clone());
+            state.operations.push(UserOperation {
+                id: u64::MAX,
+                operation,
+            })
+        }
+        rustpad
+    }
+}
 impl Rustpad {
     /// Handle a connection from a WebSocket.
     pub async fn on_connection(&self, socket: WebSocket) {

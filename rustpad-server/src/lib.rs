@@ -5,10 +5,12 @@
 
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
+use rand::distributions::Alphanumeric;
+use bytes::Bytes;
 
 use dashmap::DashMap;
 use log::{error, info};
-use rand::Rng;
+use rand::{thread_rng, Rng};
 use serde::Serialize;
 use tokio::time::{self, Instant};
 use warp::{filters::BoxedFilter, ws::Ws, Filter, Rejection, Reply};
@@ -119,16 +121,24 @@ fn backend(config: ServerConfig) -> BoxedFilter<(impl Reply,)> {
         .and(state_filter.clone())
         .and_then(text_handler);
 
+    let text_post =
+        warp::post()
+        .and(warp::path!("create" / String))
+        .and(warp::body::bytes())
+        .and(state_filter.clone())
+        .and_then(text_post_handler);
+
     let start_time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .expect("SystemTime returned before UNIX_EPOCH")
         .as_secs();
+
     let stats = warp::path!("stats")
         .and(warp::any().map(move || start_time))
         .and(state_filter)
         .and_then(stats_handler);
 
-    socket.or(text).or(stats).boxed()
+    socket.or(text_post).or(text).or(stats).boxed()
 }
 
 /// Handler for the `/api/socket/{id}` endpoint.
@@ -170,6 +180,41 @@ async fn text_handler(id: String, state: ServerState) -> Result<impl Reply, Reje
             }
         }
     })
+}
+
+/// Handler for the `/api/text/{id}` endpoint.
+async fn text_post_handler(language: String, bytes: bytes::Bytes, state: ServerState) -> Result<impl Reply, Rejection> {
+    let mut retry = true;
+    let mut id:String = "".to_string();
+    let maybe_text = String::from_utf8(bytes.to_vec())
+        .map_err(|_| warp::reject());
+    let text = maybe_text.unwrap_or_default();
+    while retry{
+        id = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(6)
+            .map(char::from)
+            .collect();
+        if !state.documents.contains_key(&id){
+            if let Some(db) = state.database.clone() {
+                if let Ok(entryexists) = db.exists(&id).await{
+                    if !entryexists {
+                        println!("{}", text);
+                        let rustpad = Arc::new(Rustpad::from((&language, &text)));
+                        tokio::spawn(persister(id.clone(), Arc::clone(&rustpad), db.clone()));
+                        state.documents.insert(id.clone(), Document::new(rustpad));
+                        retry = false;
+                    }
+                }
+            }else{
+                        println!("{}", text);
+                let rustpad = Arc::new(Rustpad::from((&language, &text)));
+                state.documents.insert(id.clone(), Document::new(rustpad));
+                retry = false;
+            }
+        }
+    }
+    Ok(id)
 }
 
 /// Handler for the `/api/stats` endpoint.

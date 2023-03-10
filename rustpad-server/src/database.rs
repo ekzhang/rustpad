@@ -78,4 +78,14 @@ ON CONFLICT(id) DO UPDATE SET
             .await?;
         Ok(row.0 as usize)
     }
+
+    /// Count the number of documents in the database.
+    pub async fn exists(&self, document_id: &str) -> Result<bool> {
+
+        let row: (i64,) = sqlx::query_as(r#"SELECT count(*) FROM document WHERE id = $1"#)
+            .bind(document_id)
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(row.0 > 0)
+    }
 }
