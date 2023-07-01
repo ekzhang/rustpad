@@ -5,22 +5,22 @@ authors = ["Eric Zhang <ekzhang1@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.40"
-bytecount = "0.6"
-dashmap = "4.0.2"
-dotenv = "0.15.0"
-futures = "0.3.15"
-log = "0.4.14"
-operational-transform = { version = "0.6.0", features = ["serde"] }
-parking_lot = "0.11.1"
-pretty_env_logger = "0.4.0"
-rand = "0.8.3"
-serde = { version = "1.0.126", features = ["derive"] }
-serde_json = "1.0.64"
-sqlx = { version = "0.5.9", features = ["runtime-tokio-rustls", "sqlite"] }
-tokio = { version = "1.6.1", features = ["full", "test-util"] }
-tokio-stream = "0.1.6"
-warp = "0.3.1"
+anyhow = { version = "1.0.71", default-features = false, features = ["std"] }
+bytecount = { version = "0.6.3", default-features = false }
+dashmap = { version = "5.4.0", default-features = false }
+dotenv = { version = "0.15.0", default-features = false }
+futures = { version = "0.3.28", default-features = false }
+log = { version = "0.4.19", default-features = false }
+operational-transform = { version = "0.6.1", default-features = false, features = ["serde"] }
+parking_lot = { version = "0.12.1", default-features = false }
+pretty_env_logger = { version = "0.5.0", default-features = false }
+rand = { version = "0.8.5", default-features = false }
+serde = { version = "1.0.164", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0.99", default-features = false }
+sqlx = { version = "0.6.3", default-features = false, features = ["macros","migrate", "runtime-tokio-rustls", "sqlite"] }
+tokio = { version = "1.29.1", default-features = false, features = ["full", "test-util"] }
+tokio-stream = { version = "0.1.14", default-features = false }
+warp = { version = "0.3.5", default-features = false, features = ["websocket"] }
 
 [dev-dependencies]
-tempfile = "3.2.0"
+tempfile = { version = "3.6.0", default-features = false }

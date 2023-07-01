@@ -1,4 +1,4 @@
-use rustpad_server::{server, database::Database, ServerConfig};
+use rustpad_server::{database::Database, server, ServerConfig};
 
 #[tokio::main]
 async fn main() {
