@@ -94,6 +94,8 @@ following environment variables on startup:
 
 ## Deployment
 
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/Aw9WuR)
+
 Rustpad is distributed as a single 6 MB Docker image, which is built
 automatically from the `Dockerfile` in this repository. You can pull the latest
 version of this image from Docker Hub. It has multi-platform support for
