@@ -1,6 +1,3 @@
 [workspace]
-
-members = [
-    "rustpad-server",
-    "rustpad-wasm",
-]
+resolver = "2"
+members = ["rustpad-server", "rustpad-wasm"]

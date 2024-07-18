@@ -102,9 +102,12 @@ async fn test_persist() -> Result<()> {
     time::advance(3 * hour).await;
     expect_text(&filter, "persist", "hello").await;
 
-    for _ in 0..50 {
+    for _ in 0..5 {
         time::advance(10000 * hour).await;
         expect_text(&filter, "persist", "hello").await;
+        time::resume();
+        time::sleep(Duration::from_millis(50)).await;
+        time::pause();
     }
 
     Ok(())

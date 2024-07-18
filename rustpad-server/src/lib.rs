@@ -44,6 +44,7 @@ impl Drop for Document {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 struct CustomReject(anyhow::Error);
 
