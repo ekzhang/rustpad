@@ -37,7 +37,7 @@ To run this application, you need to install Rust, `wasm-pack`, and Node.js.
 Then, build the WebAssembly portion of the app:
 
 ```
-wasm-pack build --target web rustpad-wasm
+wasm-pack build rustpad-wasm
 ```
 
 When that is complete, you can install dependencies for the frontend React

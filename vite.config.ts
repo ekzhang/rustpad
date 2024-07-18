@@ -1,11 +1,17 @@
 import { defineConfig } from "vite";
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1000,
   },
-  plugins: [react()],
+  plugins: [
+    wasm(),
+    topLevelAwait(),
+    react()
+  ],
   server: {
     proxy: {
       "/api": {
