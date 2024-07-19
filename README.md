@@ -60,7 +60,7 @@ to start the frontend portion.
 npm run dev
 ```
 
-This command will open a browser window to `http://localhost:3000`, with hot
+This command will open a browser window to `http://localhost:5173`, with hot
 reloading on changes.
 
 ## Testing
