@@ -30,6 +30,11 @@
     "monaco-editor": "^0.31.1",
     "prettier": "2.5.1",
     "typescript": "~5.5.3",
-    "vite": "^5.3.4"
+    "vite": "^5.3.4",
+    "vite-plugin-top-level-await": "^1.4.1",
+    "vite-plugin-wasm": "^3.3.0"
+  },
+  "overrides": {
+    "@swc/core": "~1.6.13"
   }
 }

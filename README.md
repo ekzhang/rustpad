@@ -37,7 +37,7 @@ To run this application, you need to install Rust, `wasm-pack`, and Node.js.
 Then, build the WebAssembly portion of the app:
 
 ```
-wasm-pack build --target web rustpad-wasm
+wasm-pack build rustpad-wasm
 ```
 
 When that is complete, you can install dependencies for the frontend React
@@ -60,7 +60,7 @@ to start the frontend portion.
 npm run dev
 ```
 
-This command will open a browser window to `http://localhost:3000`, with hot
+This command will open a browser window to `http://localhost:5173`, with hot
 reloading on changes.
 
 ## Testing
