@@ -23,7 +23,6 @@ import {
   VscGist,
   VscRepoPull,
 } from "react-icons/vsc";
-import useStorage from "use-local-storage-state";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
 import rustpadRaw from "../rustpad-server/src/rustpad.rs?raw";
@@ -51,19 +50,57 @@ function generateHue() {
   return Math.floor(Math.random() * 360);
 }
 
+/// Accepted URL parameters should be EtherPad compatible:
+/// https://docs.etherpad.org/api/embed_parameters.html
+///
+/// Parameters corresponding to EtherPad:
+///  * userName
+///  * userColor (A passed RGB hex value is converted to hue)
+/// Parameters supported by EtherPad but not Rustpad:
+///  * showLineNumbers (always shown)
+///  * showControls (unknown usage)
+///  * showChat & alwaysShowChat (no equivalent)
+///  * useMonospaceFont (always used)
+///  * noColors (unsupported)
+///  * lang & rtl (interface is only available in English in LTR direction)
+///  * #L / jump to line number
+/// Parameters supported by Rustpad but not Etherpad:
+///  * contentLang: Programming language for syntax highlighting and suggestions
+///  * darkMode: Force Rustpad to use light or dark color scheme
+
 function App() {
   const id = useHash();  // Normalizes URL
 
   const toast = useToast();
-  const [language, setLanguage] = useState("plaintext");
+  const [language, setLanguage] = useParamOrState("contentLang", "string", "plaintext");
   const [connection, setConnection] = useState<
     "connected" | "disconnected" | "desynchronized"
   >("disconnected");
   const [users, setUsers] = useState<Record<number, UserInfo>>({});
-  const [name, setName] = useStorage("name", generateName);
-  const [hue, setHue] = useStorage("hue", generateHue);
+  const [name, setName] = useParamOrStorage("userName", "string", generateName);
+  const [hue, setHue] = useParamOrStorage("userColor", "string", generateHue, (value) => {
+    // Extract hue from CSS color
+    const valueHexParts = value.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    if (valueHexParts !== null) {
+      let [r, g, b] = [
+        parseInt(valueHexParts[1], 16) / 255,
+        parseInt(valueHexParts[2], 16) / 255,
+        parseInt(valueHexParts[3], 16) / 255,
+      ];
+      // Source: https://en.wikipedia.org/wiki/Hue#Defining_hue_in_terms_of_RGB
+      return Math.atan2(Math.sqrt(3) * (g - b), 2 * r - g - b) * 180 / Math.PI;
+    }
+    
+    // Accept direct hue value
+    const hue = parseFloat(value);
+    if (!isNaN(hue) && hue >= 0 && hue < 360) {
+      return hue;
+    }
+  });
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
-  const [darkMode, setDarkMode] = useStorage("darkMode", () => false);
+  const [darkMode, setDarkMode] = useParamOrStorage(
+    "darkMode", "boolean", () => window.matchMedia("(prefers-color-scheme: dark)")
+  );
   const rustpad = useRef<Rustpad>();
 
   useEffect(() => {
