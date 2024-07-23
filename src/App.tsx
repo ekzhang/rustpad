@@ -52,6 +52,8 @@ function generateHue() {
 }
 
 function App() {
+  const id = useHash();  // Normalizes URL
+
   const toast = useToast();
   const [language, setLanguage] = useState("plaintext");
   const [connection, setConnection] = useState<
@@ -63,7 +65,6 @@ function App() {
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
   const [darkMode, setDarkMode] = useStorage("darkMode", () => false);
   const rustpad = useRef<Rustpad>();
-  const id = useHash();
 
   useEffect(() => {
     if (editor?.getModel()) {

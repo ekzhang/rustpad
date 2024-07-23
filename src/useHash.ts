@@ -4,9 +4,8 @@ const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const idLen = 6;
 
 function getHash() {
+  let newUrl = new URL(window.location);
   if (!window.location.hash) {
-    let newUrl = new URL(window.location);
-
     // Attempt retriving document ID as last part of path, moving it to the fragment
     let filename = newUrl.pathname.split("/").pop();
     if (filename != "" && filename != "index.html") {
@@ -20,9 +19,23 @@ function getHash() {
       }
       newUrl.hash = id;
     }
+  }
+
+  // Move parameters after document ID if present
+  if (newUrl.search) {
+    if (newUrl.hash.includes("?")) {
+      newUrl.hash += "&" + newUrl.search.slice(1);
+    } else {
+      newUrl.hash += newUrl.search;
+    }
+    newUrl.search = "";
+  }
+
+  if (newUrl.href != window.location.href) {
     window.history.replaceState(null, "", newUrl.href);
   }
-  return window.location.hash.slice(1);
+
+  return newUrl.hash.slice(1).split("?")[0];
 }
 
 function useHash() {
