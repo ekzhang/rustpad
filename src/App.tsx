@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Container,
+  Collapse,
   Flex,
   Heading,
   HStack,
@@ -12,16 +13,20 @@ import {
   InputRightElement,
   Link,
   Select,
+  Spacer,
   Stack,
   Switch,
   Text,
+  useDisclosure,
   useToast,
 } from "@chakra-ui/react";
+import { motion } from "framer-motion";
 import {
   VscChevronRight,
   VscFolderOpened,
   VscGist,
   VscRepoPull,
+  VscMenu,
 } from "react-icons/vsc";
 import useStorage from "use-local-storage-state";
 import Editor from "@monaco-editor/react";
@@ -52,6 +57,10 @@ function generateHue() {
 }
 
 function App() {
+  const sidebar = useDisclosure({
+    defaultIsOpen: true,
+  });
+  const [isSidebarHidden, setSidebarHidden] = useState(!sidebar.isOpen);
   const toast = useToast();
   const [language, setLanguage] = useState("plaintext");
   const [connection, setConnection] = useState<
@@ -179,132 +188,174 @@ function App() {
         Rustpad
       </Box>
       <Flex flex="1 0" minH={0}>
-        <Container
-          w="xs"
-          bgColor={darkMode ? "#252526" : "#f3f3f3"}
-          overflowY="auto"
-          maxW="full"
-          lineHeight={1.4}
-          py={4}
+        <Button
+          {...sidebar.getButtonProps()}
+          m={0.5}
+          p={0.5}
+          size="sm"
+          bgColor="transparent"
+          _hover={{
+            bgColor: darkMode ? "rgba(87, 87, 89, 0.2)" : "rgba(128, 128, 128, 0.2)",
+          }}
+          _active={{
+            bgColor: darkMode ? "rgba(87, 87, 89, 0.4)" : "rgba(128, 128, 128, 0.4)",
+          }}
+          position="absolute"
+          zIndex={1}
         >
-          <ConnectionStatus darkMode={darkMode} connection={connection} />
-
-          <Flex justifyContent="space-between" mt={4} mb={1.5} w="full">
-            <Heading size="sm">Dark Mode</Heading>
-            <Switch isChecked={darkMode} onChange={handleDarkMode} />
-          </Flex>
-
-          <Heading mt={4} mb={1.5} size="sm">
-            Language
-          </Heading>
-          <Select
-            size="sm"
-            bgColor={darkMode ? "#3c3c3c" : "white"}
-            borderColor={darkMode ? "#3c3c3c" : "white"}
-            value={language}
-            onChange={(event) => handleChangeLanguage(event.target.value)}
+            <Icon
+              as={VscMenu}
+              color={darkMode ? "#cbcaca" : "inherit"}
+            />
+        </Button>
+        <motion.div
+          layout
+          animate={{ "width": sidebar.isOpen ? "var(--chakra-sizes-xs)" : 0 }}
+          transition={{ ease: "easeInOut" }}
+          style={{
+            overflow: "hidden",
+            height: "100%",
+          }}
+        >
+          <Container
+            overflowY="auto"
+            w="xs"
+            h="100%"
+            lineHeight={1.4}
+            pl="2.5rem"
+            bgColor={darkMode ? "#252526" : "#f3f3f3"}
           >
-            {languages.map((lang) => (
-              <option key={lang} value={lang} style={{ color: "black" }}>
-                {lang}
-              </option>
-            ))}
-          </Select>
+            <Flex justifyContent="space-between" mt={4} mb={1.5} w="full">
+              <Heading size="sm">Dark Mode</Heading>
+              <Switch isChecked={darkMode} onChange={handleDarkMode} />
+            </Flex>
 
-          <Heading mt={4} mb={1.5} size="sm">
-            Share Link
-          </Heading>
-          <InputGroup size="sm">
-            <Input
-              readOnly
-              pr="3.5rem"
-              variant="outline"
+            <Heading mt={4} mb={1.5} size="sm">
+              Language
+            </Heading>
+            <Select
+              size="sm"
               bgColor={darkMode ? "#3c3c3c" : "white"}
               borderColor={darkMode ? "#3c3c3c" : "white"}
-              value={`${window.location.origin}/#${id}`}
-            />
-            <InputRightElement width="3.5rem">
-              <Button
-                h="1.4rem"
-                size="xs"
-                onClick={handleCopy}
-                _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
-                bgColor={darkMode ? "#575759" : "gray.200"}
-              >
-                Copy
-              </Button>
-            </InputRightElement>
-          </InputGroup>
-
-          <Heading mt={4} mb={1.5} size="sm">
-            Active Users
-          </Heading>
-          <Stack spacing={0} mb={1.5} fontSize="sm">
-            <User
-              info={{ name, hue }}
-              isMe
-              onChangeName={(name) => name.length > 0 && setName(name)}
-              onChangeColor={() => setHue(generateHue())}
-              darkMode={darkMode}
-            />
-            {Object.entries(users).map(([id, info]) => (
-              <User key={id} info={info} darkMode={darkMode} />
-            ))}
-          </Stack>
-
-          <Heading mt={4} mb={1.5} size="sm">
-            About
-          </Heading>
-          <Text fontSize="sm" mb={1.5}>
-            <strong>Rustpad</strong> is an open-source collaborative text editor
-            based on the <em>operational transformation</em> algorithm.
-          </Text>
-          <Text fontSize="sm" mb={1.5}>
-            Share a link to this pad with others, and they can edit from their
-            browser while seeing your changes in real time.
-          </Text>
-          <Text fontSize="sm" mb={1.5}>
-            Built using Rust and TypeScript. See the{" "}
-            <Link
-              color="blue.600"
-              fontWeight="semibold"
-              href="https://github.com/ekzhang/rustpad"
-              isExternal
+              value={language}
+              onChange={(event) => handleChangeLanguage(event.target.value)}
             >
-              GitHub repository
-            </Link>{" "}
-            for details.
-          </Text>
+              {languages.map((lang) => (
+                <option key={lang} value={lang} style={{ color: "black" }}>
+                  {lang}
+                </option>
+              ))}
+            </Select>
 
-          <Button
-            size="sm"
-            colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
-            borderColor={darkMode ? "purple.400" : "purple.600"}
-            color={darkMode ? "purple.400" : "purple.600"}
-            variant="outline"
-            leftIcon={<VscRepoPull />}
-            mt={1}
-            onClick={handleLoadSample}
-          >
-            Read the code
-          </Button>
-        </Container>
+            <Heading mt={4} mb={1.5} size="sm">
+              Share Link
+            </Heading>
+            <InputGroup size="sm">
+              <Input
+                readOnly
+                pr="3.5rem"
+                variant="outline"
+                bgColor={darkMode ? "#3c3c3c" : "white"}
+                borderColor={darkMode ? "#3c3c3c" : "white"}
+                value={`${window.location.origin}/#${id}`}
+              />
+              <InputRightElement width="3.5rem">
+                <Button
+                  h="1.4rem"
+                  size="xs"
+                  onClick={handleCopy}
+                  _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
+                  bgColor={darkMode ? "#575759" : "gray.200"}
+                >
+                  Copy
+                </Button>
+              </InputRightElement>
+            </InputGroup>
+
+            <Heading mt={4} mb={1.5} size="sm">
+              Active Users
+            </Heading>
+            <Stack spacing={0} mb={1.5} fontSize="sm">
+              <User
+                info={{ name, hue }}
+                isMe
+                onChangeName={(name) => name.length > 0 && setName(name)}
+                onChangeColor={() => setHue(generateHue())}
+                darkMode={darkMode}
+              />
+              {Object.entries(users).map(([id, info]) => (
+                <User key={id} info={info} darkMode={darkMode} />
+              ))}
+            </Stack>
+
+            <Heading mt={4} mb={1.5} size="sm">
+              About
+            </Heading>
+            <Text fontSize="sm" mb={1.5}>
+              <strong>Rustpad</strong> is an open-source collaborative text editor
+              based on the <em>operational transformation</em> algorithm.
+            </Text>
+            <Text fontSize="sm" mb={1.5}>
+              Share a link to this pad with others, and they can edit from their
+              browser while seeing your changes in real time.
+            </Text>
+            <Text fontSize="sm" mb={1.5}>
+              Built using Rust and TypeScript. See the{" "}
+              <Link
+                color="blue.600"
+                fontWeight="semibold"
+                href="https://github.com/ekzhang/rustpad"
+                isExternal
+              >
+                GitHub repository
+              </Link>{" "}
+              for details.
+            </Text>
+
+            <Button
+              size="sm"
+              colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
+              borderColor={darkMode ? "purple.400" : "purple.600"}
+              color={darkMode ? "purple.400" : "purple.600"}
+              variant="outline"
+              leftIcon={<VscRepoPull />}
+              mt={1}
+              onClick={handleLoadSample}
+            >
+              Read the code
+            </Button>
+          </Container>
+        </motion.div>
         <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
-          <HStack
-            h={6}
-            spacing={1}
-            color="#888888"
-            fontWeight="medium"
-            fontSize="13px"
-            px={3.5}
-            flexShrink={0}
+          <motion.div
+            {...sidebar.getDisclosureProps()}
+            layout
+            hidden={false}
+            animate={{ paddingLeft: sidebar.isOpen ? 0 : "var(--chakra-sizes-6)" }}
+            transition={{ ease: "easeInOut" }}
           >
-            <Icon as={VscFolderOpened} fontSize="md" color="blue.500" />
-            <Text>documents</Text>
-            <Icon as={VscChevronRight} fontSize="md" />
-            <Icon as={VscGist} fontSize="md" color="purple.500" />
-            <Text>{id}</Text>
-          </HStack>
+            <Flex direction="row">
+              <HStack
+                h={7}
+                spacing={1}
+                color="#888888"
+                fontWeight="medium"
+                fontSize="13px"
+                px={3.5}
+                flexShrink={0}
+              >
+                <Icon as={VscFolderOpened} fontSize="md" color="blue.500" />
+                <Text>documents</Text>
+                <Icon as={VscChevronRight} fontSize="md" />
+                <Icon as={VscGist} fontSize="md" color="purple.500" />
+                <Text>{id}</Text>
+              </HStack>
+              <Spacer/>
+              <Box marginRight={2}>
+                <ConnectionStatus darkMode={darkMode} connection={connection} />
+              </Box>
+            </Flex>
+          </motion.div>
           <Box flex={1} minH={0}>
             <Editor
               theme={darkMode ? "vs-dark" : "vs"}
@@ -320,7 +371,7 @@ function App() {
       </Flex>
       <Footer />
     </Flex>
-  );
+ );
 }
 
 export default App;
