@@ -30,7 +30,7 @@ import rustpadRaw from "../rustpad-server/src/rustpad.rs?raw";
 import languages from "./languages.json";
 import animals from "./animals.json";
 import Rustpad, { UserInfo } from "./rustpad";
-import useHash from "./useHash";
+import { useHash, useParamOrState, useParamOrStorage } from "./useFromURL";
 import ConnectionStatus from "./ConnectionStatus";
 import Footer from "./Footer";
 import User from "./User";
