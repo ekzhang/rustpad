@@ -10,14 +10,14 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@chakra-ui/react": "^1.7.3",
+    "@chakra-ui/react": "^2.8.2",
     "@emotion/react": "^11.7.1",
     "@emotion/styled": "^11.6.0",
     "@monaco-editor/react": "^4.3.1",
-    "framer-motion": "^4.1.17",
+    "framer-motion": "^11.3.7",
     "lodash.debounce": "^4.0.8",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
     "react-icons": "^4.3.1",
     "rustpad-wasm": "file:./rustpad-wasm/pkg",
     "use-local-storage-state": "^13.0.0"
