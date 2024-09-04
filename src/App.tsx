@@ -36,11 +36,9 @@ import Footer from "./Footer";
 import User from "./User";
 
 function getWsUri(id: string) {
-  return (
-    (window.location.origin.startsWith("https") ? "wss://" : "ws://") +
-    window.location.host +
-    `/api/socket/${id}`
-  );
+  let url = new URL(`api/socket/${id}`, window.location.href);
+  url.protocol = (url.protocol == "https:") ? "wss:" : "ws:";
+  return url.href;
 }
 
 function generateName() {
