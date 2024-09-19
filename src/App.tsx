@@ -35,6 +35,8 @@ import ConnectionStatus from "./ConnectionStatus";
 import Footer from "./Footer";
 import User from "./User";
 
+type WordWrap = typeof editor.EditorOptions.wordWrap.defaultValue;
+
 function getWsUri(id: string) {
   let url = new URL(`api/socket/${id}`, window.location.href);
   url.protocol = (url.protocol == "https:") ? "wss:" : "ws:";
@@ -60,6 +62,7 @@ function App() {
   const [hue, setHue] = useStorage("hue", generateHue);
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
   const [darkMode, setDarkMode] = useStorage("darkMode", () => false);
+  const [wordWrap, setWordWrap] = useState<WordWrap>("on");
   const rustpad = useRef<Rustpad>();
   const id = useHash();
 
@@ -193,6 +196,23 @@ function App() {
           </Flex>
 
           <Heading mt={4} mb={1.5} size="sm">
+            Word Wrap
+          </Heading>
+          <Select
+            size="sm"
+            bgColor={darkMode ? "#3c3c3c" : "white"}
+            borderColor={darkMode ? "#3c3c3c" : "white"}
+            value={wordWrap}
+            onChange={(event) => setWordWrap(event.target.value as WordWrap)}
+          >
+            {["off", "on", "wordWrapColumn", "bounded"].map((value) => (
+              <option key={value} value={value} style={{ color: "black" }}>
+                {value}
+              </option>
+            ))}
+          </Select>
+
+          <Heading mt={4} mb={1.5} size="sm">
             Language
           </Heading>
           <Select
@@ -310,6 +330,7 @@ function App() {
               options={{
                 automaticLayout: true,
                 fontSize: 13,
+                wordWrap: wordWrap,
               }}
               onMount={(editor) => setEditor(editor)}
             />
