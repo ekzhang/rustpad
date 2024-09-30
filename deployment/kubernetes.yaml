@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rustpad-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rustpad
+  template:
+    metadata:
+      labels:
+        app: rustpad
+    spec:
+      containers:
+      - name: rustpad-container
+        image: ekzhang/rustpad
+        ports:
+        - containerPort: 3030
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rustpad-service
+spec:
+  selector:
+    app: rustpad
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3030
+

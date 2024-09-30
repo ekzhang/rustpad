@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: myclusterissuer
+    ingress.kubernetes.io/proxy-body-size: "0"
+    ingress.kubernetes.io/ssl-redirect: "true"
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.org/client-max-body-size: "0"
+    nginx.org/proxy-connect-timeout: "3600"
+    nginx.org/proxy-read-timeout: "3600"
+    nginx.org/websocket-services: rustpad-service
+  name: rustpadgcpingress
+spec:
+  rules:
+  - host: rustpad.example.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: rustpad-service
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - rustpad.example.com
+    secretName: rustpadgcp-tls
