@@ -13,7 +13,6 @@ use tokio::sync::{broadcast, Notify};
 use warp::ws::{Message, WebSocket};
 
 use crate::{database::PersistedDocument, ot::transform_index};
-
 /// The main object representing a collaborative session.
 pub struct Rustpad {
     /// State modified by critical sections of the code.
@@ -31,6 +30,7 @@ pub struct Rustpad {
 /// Shared state involving multiple users, protected by a lock.
 #[derive(Default)]
 struct State {
+    live_users: u128,
     operations: Vec<UserOperation>,
     text: String,
     language: Option<String>,
@@ -118,6 +118,7 @@ impl From<PersistedDocument> for Rustpad {
         let rustpad = Self::default();
         {
             let mut state = rustpad.state.write();
+            state.live_users += 1;
             state.text = document.text;
             state.language = document.language;
             state.operations.push(UserOperation {
