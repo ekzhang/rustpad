@@ -7,6 +7,7 @@ import useLocalStorageState from "use-local-storage-state";
 
 import rustpadRaw from "../rustpad-server/src/rustpad.rs?raw";
 import Footer from "./Footer";
+import ReadCodeConfirm from "./ReadCodeConfirm";
 import Sidebar from "./Sidebar";
 import animals from "./animals.json";
 import languages from "./languages.json";
@@ -46,6 +47,8 @@ function App() {
   });
   const rustpad = useRef<Rustpad>();
   const id = useHash();
+
+  const [readCodeConfirmOpen, setReadCodeConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (editor?.getModel()) {
@@ -107,17 +110,20 @@ function App() {
     }
   }
 
-  function handleLoadSample() {
+  function handleLoadSample(confirmed: boolean) {
     if (editor?.getModel()) {
       const model = editor.getModel()!;
+      const range = model.getFullModelRange();
+
+      // If there are at least 10 lines of code, ask for confirmation.
+      if (range.endLineNumber >= 10 && !confirmed) {
+        setReadCodeConfirmOpen(true);
+        return;
+      }
+
       model.pushEditOperations(
         editor.getSelections(),
-        [
-          {
-            range: model.getFullModelRange(),
-            text: rustpadRaw,
-          },
-        ],
+        [{ range, text: rustpadRaw }],
         () => null,
       );
       editor.setPosition({ column: 0, lineNumber: 0 });
@@ -159,9 +165,17 @@ function App() {
           users={users}
           onDarkModeChange={handleDarkModeChange}
           onLanguageChange={handleLanguageChange}
-          onLoadSample={handleLoadSample}
+          onLoadSample={() => handleLoadSample(false)}
           onChangeName={(name) => name.length > 0 && setName(name)}
           onChangeColor={() => setHue(generateHue())}
+        />
+        <ReadCodeConfirm
+          isOpen={readCodeConfirmOpen}
+          onClose={() => setReadCodeConfirmOpen(false)}
+          onConfirm={() => {
+            handleLoadSample(true);
+            setReadCodeConfirmOpen(false);
+          }}
         />
 
         <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
