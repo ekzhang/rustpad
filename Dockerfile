@@ -20,6 +20,7 @@ RUN npm ci
 COPY . .
 ARG GITHUB_SHA
 ENV VITE_SHA=${GITHUB_SHA}
+RUN npm run check
 RUN npm run build
 
 FROM scratch

@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
   Container,
   Flex,
-  Heading,
   HStack,
+  Heading,
   Icon,
   Input,
   InputGroup,
@@ -17,27 +16,29 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
+import Editor from "@monaco-editor/react";
+import { editor } from "monaco-editor/esm/vs/editor/editor.api";
+import { useEffect, useRef, useState } from "react";
 import {
   VscChevronRight,
   VscFolderOpened,
   VscGist,
   VscRepoPull,
 } from "react-icons/vsc";
-import useStorage from "use-local-storage-state";
-import Editor from "@monaco-editor/react";
-import { editor } from "monaco-editor/esm/vs/editor/editor.api";
+import useLocalStorageState from "use-local-storage-state";
+
 import rustpadRaw from "../rustpad-server/src/rustpad.rs?raw";
-import languages from "./languages.json";
-import animals from "./animals.json";
-import Rustpad, { UserInfo } from "./rustpad";
-import useHash from "./useHash";
 import ConnectionStatus from "./ConnectionStatus";
 import Footer from "./Footer";
 import User from "./User";
+import animals from "./animals.json";
+import languages from "./languages.json";
+import Rustpad, { UserInfo } from "./rustpad";
+import useHash from "./useHash";
 
 function getWsUri(id: string) {
   let url = new URL(`api/socket/${id}`, window.location.href);
-  url.protocol = (url.protocol == "https:") ? "wss:" : "ws:";
+  url.protocol = url.protocol == "https:" ? "wss:" : "ws:";
   return url.href;
 }
 
@@ -56,10 +57,16 @@ function App() {
     "connected" | "disconnected" | "desynchronized"
   >("disconnected");
   const [users, setUsers] = useState<Record<number, UserInfo>>({});
-  const [name, setName] = useStorage("name", generateName);
-  const [hue, setHue] = useStorage("hue", generateHue);
+  const [name, setName] = useLocalStorageState("name", {
+    defaultValue: generateName,
+  });
+  const [hue, setHue] = useLocalStorageState("hue", {
+    defaultValue: generateHue,
+  });
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
-  const [darkMode, setDarkMode] = useStorage("darkMode", () => false);
+  const [darkMode, setDarkMode] = useLocalStorageState("darkMode", {
+    defaultValue: false,
+  });
   const rustpad = useRef<Rustpad>();
   const id = useHash();
 
@@ -145,7 +152,7 @@ function App() {
             text: rustpadRaw,
           },
         ],
-        () => null
+        () => null,
       );
       editor.setPosition({ column: 0, lineNumber: 0 });
       if (language !== "rust") {
