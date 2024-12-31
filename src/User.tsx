@@ -18,6 +18,7 @@ import {
 import { useRef } from "react";
 import { FaPalette } from "react-icons/fa";
 import { VscAccount } from "react-icons/vsc";
+
 import { UserInfo } from "./rustpad";
 
 type UserProps = {
@@ -94,7 +95,7 @@ function User({
           </Button>
         </PopoverBody>
         <PopoverFooter
-          d="flex"
+          display="flex"
           justifyContent="flex-end"
           borderColor={darkMode ? "#464647" : "gray.200"}
         >
