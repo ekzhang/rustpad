@@ -10,11 +10,11 @@ import { OpSeq } from "rustpad-wasm";
 export type RustpadOptions = {
   readonly uri: string;
   readonly editor: editor.IStandaloneCodeEditor;
-  readonly onConnected?: () => unknown;
-  readonly onDisconnected?: () => unknown;
-  readonly onDesynchronized?: () => unknown;
-  readonly onChangeLanguage?: (language: string) => unknown;
-  readonly onChangeUsers?: (users: Record<number, UserInfo>) => unknown;
+  readonly onConnected?: () => void;
+  readonly onDisconnected?: () => void;
+  readonly onDesynchronized?: () => void;
+  readonly onChangeLanguage?: (language: string) => void;
+  readonly onChangeUsers?: (users: Record<number, UserInfo>) => void;
   readonly reconnectInterval?: number;
 };
 
