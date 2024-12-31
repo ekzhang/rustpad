@@ -65,7 +65,8 @@ function Sidebar({
 
   return (
     <Container
-      w="xs"
+      w={{ base: "3xs", md: "2xs", lg: "xs" }}
+      display={{ base: "none", sm: "block" }}
       bgColor={darkMode ? "#252526" : "#f3f3f3"}
       overflowY="auto"
       maxW="full"
