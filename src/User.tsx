@@ -24,8 +24,8 @@ import { UserInfo } from "./rustpad";
 type UserProps = {
   info: UserInfo;
   isMe?: boolean;
-  onChangeName?: (name: string) => unknown;
-  onChangeColor?: () => unknown;
+  onChangeName?: (name: string) => void;
+  onChangeColor?: () => void;
   darkMode: boolean;
 };
 

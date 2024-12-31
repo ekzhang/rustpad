@@ -1,36 +1,14 @@
-import {
-  Box,
-  Button,
-  Container,
-  Flex,
-  HStack,
-  Heading,
-  Icon,
-  Input,
-  InputGroup,
-  InputRightElement,
-  Link,
-  Select,
-  Stack,
-  Switch,
-  Text,
-  useToast,
-} from "@chakra-ui/react";
+import { Box, Flex, HStack, Icon, Text, useToast } from "@chakra-ui/react";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor/esm/vs/editor/editor.api";
 import { useEffect, useRef, useState } from "react";
-import {
-  VscChevronRight,
-  VscFolderOpened,
-  VscGist,
-  VscRepoPull,
-} from "react-icons/vsc";
+import { VscChevronRight, VscFolderOpened, VscGist } from "react-icons/vsc";
 import useLocalStorageState from "use-local-storage-state";
 
 import rustpadRaw from "../rustpad-server/src/rustpad.rs?raw";
-import ConnectionStatus from "./ConnectionStatus";
 import Footer from "./Footer";
-import User from "./User";
+import ReadCodeConfirm from "./ReadCodeConfirm";
+import Sidebar from "./Sidebar";
 import animals from "./animals.json";
 import languages from "./languages.json";
 import Rustpad, { UserInfo } from "./rustpad";
@@ -69,6 +47,8 @@ function App() {
   });
   const rustpad = useRef<Rustpad>();
   const id = useHash();
+
+  const [readCodeConfirmOpen, setReadCodeConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (editor?.getModel()) {
@@ -109,7 +89,7 @@ function App() {
     }
   }, [connection, name, hue]);
 
-  function handleChangeLanguage(language: string) {
+  function handleLanguageChange(language: string) {
     setLanguage(language);
     if (rustpad.current?.setLanguage(language)) {
       toast({
@@ -130,38 +110,30 @@ function App() {
     }
   }
 
-  async function handleCopy() {
-    await navigator.clipboard.writeText(`${window.location.origin}/#${id}`);
-    toast({
-      title: "Copied!",
-      description: "Link copied to clipboard",
-      status: "success",
-      duration: 2000,
-      isClosable: true,
-    });
-  }
-
-  function handleLoadSample() {
+  function handleLoadSample(confirmed: boolean) {
     if (editor?.getModel()) {
       const model = editor.getModel()!;
+      const range = model.getFullModelRange();
+
+      // If there are at least 10 lines of code, ask for confirmation.
+      if (range.endLineNumber >= 10 && !confirmed) {
+        setReadCodeConfirmOpen(true);
+        return;
+      }
+
       model.pushEditOperations(
         editor.getSelections(),
-        [
-          {
-            range: model.getFullModelRange(),
-            text: rustpadRaw,
-          },
-        ],
+        [{ range, text: rustpadRaw }],
         () => null,
       );
       editor.setPosition({ column: 0, lineNumber: 0 });
       if (language !== "rust") {
-        handleChangeLanguage("rust");
+        handleLanguageChange("rust");
       }
     }
   }
 
-  function handleDarkMode() {
+  function handleDarkModeChange() {
     setDarkMode(!darkMode);
   }
 
@@ -184,116 +156,28 @@ function App() {
         Rustpad
       </Box>
       <Flex flex="1 0" minH={0}>
-        <Container
-          w="xs"
-          bgColor={darkMode ? "#252526" : "#f3f3f3"}
-          overflowY="auto"
-          maxW="full"
-          lineHeight={1.4}
-          py={4}
-        >
-          <ConnectionStatus darkMode={darkMode} connection={connection} />
+        <Sidebar
+          documentId={id}
+          connection={connection}
+          darkMode={darkMode}
+          language={language}
+          currentUser={{ name, hue }}
+          users={users}
+          onDarkModeChange={handleDarkModeChange}
+          onLanguageChange={handleLanguageChange}
+          onLoadSample={() => handleLoadSample(false)}
+          onChangeName={(name) => name.length > 0 && setName(name)}
+          onChangeColor={() => setHue(generateHue())}
+        />
+        <ReadCodeConfirm
+          isOpen={readCodeConfirmOpen}
+          onClose={() => setReadCodeConfirmOpen(false)}
+          onConfirm={() => {
+            handleLoadSample(true);
+            setReadCodeConfirmOpen(false);
+          }}
+        />
 
-          <Flex justifyContent="space-between" mt={4} mb={1.5} w="full">
-            <Heading size="sm">Dark Mode</Heading>
-            <Switch isChecked={darkMode} onChange={handleDarkMode} />
-          </Flex>
-
-          <Heading mt={4} mb={1.5} size="sm">
-            Language
-          </Heading>
-          <Select
-            size="sm"
-            bgColor={darkMode ? "#3c3c3c" : "white"}
-            borderColor={darkMode ? "#3c3c3c" : "white"}
-            value={language}
-            onChange={(event) => handleChangeLanguage(event.target.value)}
-          >
-            {languages.map((lang) => (
-              <option key={lang} value={lang} style={{ color: "black" }}>
-                {lang}
-              </option>
-            ))}
-          </Select>
-
-          <Heading mt={4} mb={1.5} size="sm">
-            Share Link
-          </Heading>
-          <InputGroup size="sm">
-            <Input
-              readOnly
-              pr="3.5rem"
-              variant="outline"
-              bgColor={darkMode ? "#3c3c3c" : "white"}
-              borderColor={darkMode ? "#3c3c3c" : "white"}
-              value={`${window.location.origin}/#${id}`}
-            />
-            <InputRightElement width="3.5rem">
-              <Button
-                h="1.4rem"
-                size="xs"
-                onClick={handleCopy}
-                _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
-                bgColor={darkMode ? "#575759" : "gray.200"}
-              >
-                Copy
-              </Button>
-            </InputRightElement>
-          </InputGroup>
-
-          <Heading mt={4} mb={1.5} size="sm">
-            Active Users
-          </Heading>
-          <Stack spacing={0} mb={1.5} fontSize="sm">
-            <User
-              info={{ name, hue }}
-              isMe
-              onChangeName={(name) => name.length > 0 && setName(name)}
-              onChangeColor={() => setHue(generateHue())}
-              darkMode={darkMode}
-            />
-            {Object.entries(users).map(([id, info]) => (
-              <User key={id} info={info} darkMode={darkMode} />
-            ))}
-          </Stack>
-
-          <Heading mt={4} mb={1.5} size="sm">
-            About
-          </Heading>
-          <Text fontSize="sm" mb={1.5}>
-            <strong>Rustpad</strong> is an open-source collaborative text editor
-            based on the <em>operational transformation</em> algorithm.
-          </Text>
-          <Text fontSize="sm" mb={1.5}>
-            Share a link to this pad with others, and they can edit from their
-            browser while seeing your changes in real time.
-          </Text>
-          <Text fontSize="sm" mb={1.5}>
-            Built using Rust and TypeScript. See the{" "}
-            <Link
-              color="blue.600"
-              fontWeight="semibold"
-              href="https://github.com/ekzhang/rustpad"
-              isExternal
-            >
-              GitHub repository
-            </Link>{" "}
-            for details.
-          </Text>
-
-          <Button
-            size="sm"
-            colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
-            borderColor={darkMode ? "purple.400" : "purple.600"}
-            color={darkMode ? "purple.400" : "purple.600"}
-            variant="outline"
-            leftIcon={<VscRepoPull />}
-            mt={1}
-            onClick={handleLoadSample}
-          >
-            Read the code
-          </Button>
-        </Container>
         <Flex flex={1} minW={0} h="100%" direction="column" overflow="hidden">
           <HStack
             h={6}
