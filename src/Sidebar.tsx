@@ -116,6 +116,7 @@ function Sidebar({
             onClick={handleCopy}
             _hover={{ bg: darkMode ? "#575759" : "gray.200" }}
             bgColor={darkMode ? "#575759" : "gray.200"}
+            color={darkMode ? "white" : "inherit"}
           >
             Copy
           </Button>
