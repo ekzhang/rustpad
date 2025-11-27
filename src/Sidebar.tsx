@@ -13,11 +13,13 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
-import { VscRepo } from "react-icons/vsc";
+import { VscRepo, VscDesktopDownload } from "react-icons/vsc";
 
+import type * as monaco from "monaco-editor";
 import ConnectionStatus from "./ConnectionStatus";
 import User from "./User";
 import languages from "./languages.json";
+import languages_extensions from "./languages_extensions.json";
 import type { UserInfo } from "./rustpad";
 
 export type SidebarProps = {
@@ -27,6 +29,7 @@ export type SidebarProps = {
   language: string;
   currentUser: UserInfo;
   users: Record<number, UserInfo>;
+  editor?: monaco.editor.IStandaloneCodeEditor; 
   onDarkModeChange: () => void;
   onLanguageChange: (language: string) => void;
   onLoadSample: () => void;
@@ -46,6 +49,7 @@ function Sidebar({
   onLoadSample,
   onChangeName,
   onChangeColor,
+  editor,
 }: SidebarProps) {
   const toast = useToast();
 
@@ -139,6 +143,22 @@ function Sidebar({
         ))}
       </Stack>
 
+      <Button
+        size="sm"
+        colorScheme={darkMode ? "whiteAlpha" : "blackAlpha"}
+        borderColor={darkMode ? "purple.400" : "purple.600"}
+        color={darkMode ? "purple.400" : "purple.600"}
+        variant="outline"
+        leftIcon={<VscDesktopDownload/>}
+        mt={1}
+        onClick={() => {
+          if (!editor) return;
+          downloadEditorContent(editor);
+        }}
+      >
+        Download content
+      </Button>
+
       <Heading mt={4} mb={1.5} size="sm">
         About
       </Heading>
@@ -177,6 +197,37 @@ function Sidebar({
       </Button>
     </Container>
   );
+}
+
+// Save the current content from the Monaco editor to a local file.
+function downloadEditorContent(editor: monaco.editor.IStandaloneCodeEditor | null) {
+  if (!editor) return;
+  const model = editor.getModel();
+  if (!model) return;
+
+  const content = model.getValue();
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+
+  const language = model.getLanguageId();
+  const ext = getExtensionFromLanguage(language);
+  const filename = `rustpad.${ext}`;
+
+  a.download = filename;
+
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+const LANGUAGE_EXTENSIONS: Record<string, string> = languages_extensions;
+
+// Determine the file extension for the given language, using "txt" as a fallback.
+function getExtensionFromLanguage(language: string): string {
+  return LANGUAGE_EXTENSIONS[language] ?? "txt";
 }
 
 export default Sidebar;
