@@ -14,10 +14,18 @@ import languages from "./languages.json";
 import Rustpad, { UserInfo } from "./rustpad";
 import useHash from "./useHash";
 
+const MIN_FONT_SIZE = 8;
+const MAX_FONT_SIZE = 40;
+const DEFAULT_FONT_SIZE = 13;
+
 function getWsUri(id: string) {
   let url = new URL(`api/socket/${id}`, window.location.href);
   url.protocol = url.protocol == "https:" ? "wss:" : "ws:";
   return url.href;
+}
+
+function clampFontSize(value: number) {
+  return Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, value));
 }
 
 function generateName() {
@@ -44,6 +52,9 @@ function App() {
   const [editor, setEditor] = useState<editor.IStandaloneCodeEditor>();
   const [darkMode, setDarkMode] = useLocalStorageState("darkMode", {
     defaultValue: false,
+  });
+  const [fontSize, setFontSize] = useLocalStorageState("fontSize", {
+    defaultValue: DEFAULT_FONT_SIZE,
   });
   const rustpad = useRef<Rustpad>();
   const id = useHash();
@@ -89,6 +100,10 @@ function App() {
     }
   }, [connection, name, hue]);
 
+  useEffect(() => {
+    editor?.updateOptions({ fontSize });
+  }, [editor, fontSize]);
+
   function handleLanguageChange(language: string) {
     setLanguage(language);
     if (rustpad.current?.setLanguage(language)) {
@@ -97,7 +112,7 @@ function App() {
         description: (
           <>
             All users are now editing in{" "}
-            <Text as="span" fontWeight="semibold">
+            <Text as="span" fontWeight="semibold" >
               {language}
             </Text>
             .
@@ -137,6 +152,10 @@ function App() {
     setDarkMode(!darkMode);
   }
 
+  function handleFontSizeChange(nextFontSize: number) {
+    setFontSize(clampFontSize(nextFontSize));
+  }
+
   return (
     <Flex
       direction="column"
@@ -166,6 +185,8 @@ function App() {
           onDarkModeChange={handleDarkModeChange}
           onLanguageChange={handleLanguageChange}
           onLoadSample={() => handleLoadSample(false)}
+          fontSize={fontSize}
+          onFontSizeChange={handleFontSizeChange}
           onChangeName={(name) => name.length > 0 && setName(name)}
           onChangeColor={() => setHue(generateHue())}
         />
@@ -200,7 +221,7 @@ function App() {
               language={language}
               options={{
                 automaticLayout: true,
-                fontSize: 13,
+                fontSize,
               }}
               onMount={(editor) => setEditor(editor)}
             />

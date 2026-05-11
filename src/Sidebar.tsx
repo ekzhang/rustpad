@@ -2,6 +2,7 @@ import {
   Button,
   Container,
   Flex,
+  HStack,
   Heading,
   Input,
   InputGroup,
@@ -25,11 +26,13 @@ export type SidebarProps = {
   connection: "connected" | "disconnected" | "desynchronized";
   darkMode: boolean;
   language: string;
+  fontSize: number;
   currentUser: UserInfo;
   users: Record<number, UserInfo>;
   onDarkModeChange: () => void;
   onLanguageChange: (language: string) => void;
   onLoadSample: () => void;
+  onFontSizeChange: (fontSize: number) => void;
   onChangeName: (name: string) => void;
   onChangeColor: () => void;
 };
@@ -39,11 +42,13 @@ function Sidebar({
   connection,
   darkMode,
   language,
+  fontSize,
   currentUser,
   users,
   onDarkModeChange,
   onLanguageChange,
   onLoadSample,
+  onFontSizeChange,
   onChangeName,
   onChangeColor,
 }: SidebarProps) {
@@ -138,6 +143,54 @@ function Sidebar({
           <User key={id} info={info} darkMode={darkMode} />
         ))}
       </Stack>
+
+      <Heading mt={4} mb={1.5} size="sm">
+        Font Size
+      </Heading>
+
+      
+      <HStack spacing={2}>
+        <Button
+          size="xs"
+          minW="1.5rem"
+          onClick={() => onFontSizeChange(fontSize - 1)}
+          bgColor={darkMode ? "#3c3c3c" : "white"}
+          borderColor={darkMode ? "#3c3c3c" : "gray.200"}
+          color={darkMode ? "white" : "inherit"}
+          variant="outline"
+        >
+          -
+        </Button>
+        <Input
+          size="sm"
+          width="min-content"
+          type="number"
+          rounded="md"
+          min={8}
+          max={40}
+          textAlign="center"
+          bgColor={darkMode ? "#3c3c3c" : "white"}
+          borderColor={darkMode ? "#3c3c3c" : "gray.200"}
+          value={fontSize}
+          onChange={(event) => {
+            const nextFontSize = Number(event.target.value);
+            if (!Number.isNaN(nextFontSize)) {
+              onFontSizeChange(nextFontSize);
+            }
+          }}
+        />
+        <Button
+          size="xs"
+          minW="1.5rem"
+          onClick={() => onFontSizeChange(fontSize + 1)}
+          bgColor={darkMode ? "#3c3c3c" : "white"}
+          borderColor={darkMode ? "#3c3c3c" : "gray.200"}
+          color={darkMode ? "white" : "inherit"}
+          variant="outline"
+        >
+          +
+        </Button>
+      </HStack>
 
       <Heading mt={4} mb={1.5} size="sm">
         About
