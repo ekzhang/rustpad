@@ -8,7 +8,7 @@ use std::time::{Duration, SystemTime};
 
 use dashmap::DashMap;
 use log::{error, info};
-use rand::Rng;
+use rand::RngExt;
 use serde::Serialize;
 use tokio::time::{self, Instant};
 use warp::{filters::BoxedFilter, ws::Ws, Filter, Rejection, Reply};
@@ -217,7 +217,8 @@ async fn persister(id: String, rustpad: Arc<Rustpad>, db: Database) {
     let mut last_revision = 0;
     while !rustpad.killed() {
         let interval = PERSIST_INTERVAL
-            + rand::thread_rng().gen_range(Duration::ZERO..=PERSIST_INTERVAL_JITTER);
+            + rand::rngs::ThreadRng::default()
+                .random_range(Duration::ZERO..=PERSIST_INTERVAL_JITTER);
         time::sleep(interval).await;
         let revision = rustpad.revision();
         if revision > last_revision {
