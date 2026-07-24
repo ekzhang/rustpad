@@ -1,8 +1,8 @@
-use rustpad_server::{server, database::Database, ServerConfig};
+use rustpad_server::{database::Database, server, ServerConfig};
 
 #[tokio::main]
 async fn main() {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     pretty_env_logger::init();
 
     let port = std::env::var("PORT")
