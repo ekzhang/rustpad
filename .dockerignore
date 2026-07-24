@@ -1,11 +1,15 @@
-/.git
-/target
-pkg
-/node_modules
-/dist
-*.local
+/.dockerignore
+/.editorconfig
+/.env
+/.git/
+/.github/
+/.gitignore
+/.prettierignore
+/.prettierrc
+/dist/
+/Dockerfile
+/node_modules/
+/README.md
+/target/
 
-Dockerfile
-.dockerignore
-.env
-README.md
+*.local

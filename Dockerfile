@@ -5,14 +5,15 @@ COPY . .
 RUN cargo test --release
 RUN cargo build --release
 
-FROM --platform=amd64 rust:alpine AS wasm
+FROM rust:slim-bookworm AS wasm
 WORKDIR /home/rust/src
-RUN apk --no-cache add curl musl-dev
-RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+RUN apt-get update && apt-get install -y curl
+ADD https://wasm-bindgen.github.io/wasm-pack/installer/init.sh /tmp/wasm-pack.install.sh
+RUN sh /tmp/wasm-pack.install.sh && rm /tmp/wasm-pack.install.sh
 COPY . .
 RUN wasm-pack build rustpad-wasm
 
-FROM --platform=amd64 node:lts-alpine AS frontend
+FROM node:lts-alpine AS frontend
 WORKDIR /usr/src/app
 COPY package.json package-lock.json ./
 COPY --from=wasm /home/rust/src/rustpad-wasm/pkg rustpad-wasm/pkg
