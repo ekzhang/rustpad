@@ -3,6 +3,7 @@ import {
   Container,
   Flex,
   Heading,
+  IconButton,
   Input,
   InputGroup,
   InputRightElement,
@@ -13,7 +14,7 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
-import { VscRepo } from "react-icons/vsc";
+import { VscChevronLeft, VscChevronRight, VscRepo } from "react-icons/vsc";
 
 import ConnectionStatus from "./ConnectionStatus";
 import User from "./User";
@@ -24,9 +25,11 @@ export type SidebarProps = {
   documentId: string;
   connection: "connected" | "disconnected" | "desynchronized";
   darkMode: boolean;
+  open: boolean;
   language: string;
   currentUser: UserInfo;
   users: Record<number, UserInfo>;
+  onToggle: () => void;
   onDarkModeChange: () => void;
   onLanguageChange: (language: string) => void;
   onLoadSample: () => void;
@@ -38,9 +41,11 @@ function Sidebar({
   documentId,
   connection,
   darkMode,
+  open,
   language,
   currentUser,
   users,
+  onToggle,
   onDarkModeChange,
   onLanguageChange,
   onLoadSample,
@@ -63,6 +68,26 @@ function Sidebar({
     });
   }
 
+  if (!open) {
+    return (
+      <Flex
+        w="30px"
+        display={{ base: "none", sm: "flex" }}
+        justifyContent="center"
+        bgColor={darkMode ? "#252526" : "#f3f3f3"}
+        pt={2}
+      >
+        <IconButton
+          size="sm"
+          variant="ghost"
+          aria-label="Expand sidebar"
+          icon={<VscChevronRight />}
+          onClick={onToggle}
+        />
+      </Flex>
+    );
+  }
+
   return (
     <Container
       w={{ base: "3xs", md: "2xs", lg: "xs" }}
@@ -73,6 +98,16 @@ function Sidebar({
       lineHeight={1.4}
       py={4}
     >
+      <Flex justifyContent="flex-end" mb={1}>
+        <IconButton
+          size="sm"
+          variant="ghost"
+          aria-label="Collapse sidebar"
+          icon={<VscChevronLeft />}
+          onClick={onToggle}
+        />
+      </Flex>
+
       <ConnectionStatus darkMode={darkMode} connection={connection} />
 
       <Flex justifyContent="space-between" mt={4} mb={1.5} w="full">
