@@ -45,6 +45,9 @@ function App() {
   const [darkMode, setDarkMode] = useLocalStorageState("darkMode", {
     defaultValue: false,
   });
+  const [sidebarOpen, setSidebarOpen] = useLocalStorageState("sidebarOpen", {
+    defaultValue: true,
+  });
   const rustpad = useRef<Rustpad>();
   const id = useHash();
 
@@ -160,9 +163,11 @@ function App() {
           documentId={id}
           connection={connection}
           darkMode={darkMode}
+          open={sidebarOpen}
           language={language}
           currentUser={{ name, hue }}
           users={users}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
           onDarkModeChange={handleDarkModeChange}
           onLanguageChange={handleLanguageChange}
           onLoadSample={() => handleLoadSample(false)}
