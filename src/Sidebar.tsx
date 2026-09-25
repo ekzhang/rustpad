@@ -71,7 +71,7 @@ function Sidebar({
   if (!open) {
     return (
       <Flex
-        w="30px"
+        w="40px"
         display={{ base: "none", sm: "flex" }}
         justifyContent="center"
         bgColor={darkMode ? "#252526" : "#f3f3f3"}
@@ -79,7 +79,11 @@ function Sidebar({
       >
         <IconButton
           size="sm"
-          variant="ghost"
+          variant="outline"
+          bgColor={darkMode ? "#3c3c3c" : "white"}
+          borderColor={darkMode ? "whiteAlpha.400" : "gray.300"}
+          color={darkMode ? "gray.200" : "gray.600"}
+          _hover={{ bg: darkMode ? "#4a4a4a" : "gray.100" }}
           aria-label="Expand sidebar"
           icon={<VscChevronRight />}
           onClick={onToggle}
@@ -101,7 +105,11 @@ function Sidebar({
       <Flex justifyContent="flex-end" mb={1}>
         <IconButton
           size="sm"
-          variant="ghost"
+          variant="outline"
+          bgColor={darkMode ? "#3c3c3c" : "white"}
+          borderColor={darkMode ? "whiteAlpha.400" : "gray.300"}
+          color={darkMode ? "gray.200" : "gray.600"}
+          _hover={{ bg: darkMode ? "#4a4a4a" : "gray.100" }}
           aria-label="Collapse sidebar"
           icon={<VscChevronLeft />}
           onClick={onToggle}
