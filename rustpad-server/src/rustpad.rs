@@ -2,16 +2,19 @@
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::Instant;
 
 use anyhow::{bail, Context, Result};
 use futures::prelude::*;
 use log::{info, warn};
 use operational_transform::OperationSeq;
-use parking_lot::{RwLock, RwLockUpgradableReadGuard};
+use parking_lot::{Mutex, RwLock, RwLockUpgradableReadGuard};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{broadcast, Notify};
+use tokio::sync::{broadcast, watch, Notify};
 use warp::ws::{Message, WebSocket};
 
+use crate::runner::{RunStage, Runner, Runtime};
 use crate::{database::PersistedDocument, ot::transform_index};
 
 /// The main object representing a collaborative session.
@@ -26,6 +29,10 @@ pub struct Rustpad {
     update: broadcast::Sender<ServerMsg>,
     /// Set to true when the document is destroyed.
     killed: AtomicBool,
+    /// Code runner access, if code execution is enabled.
+    runner: Option<Runner>,
+    /// State of code runs, shared with the task running the code.
+    run: Arc<Mutex<RunState>>,
 }
 
 /// Shared state involving multiple users, protected by a lock.
@@ -36,6 +43,15 @@ struct State {
     language: Option<String>,
     users: HashMap<u64, UserInfo>,
     cursors: HashMap<u64, CursorData>,
+}
+
+/// Code run state for one document, kept in memory only.
+#[derive(Default)]
+struct RunState {
+    /// User ID of the run in progress.
+    running: Option<u64>,
+    /// The last `RunFinished` or `RunFailed` message.
+    last: Option<ServerMsg>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -70,6 +86,8 @@ enum ClientMsg {
     ClientInfo(UserInfo),
     /// Sets the user's cursor and selection positions.
     CursorData(CursorData),
+    /// Runs the current document with its language's runtime.
+    Run,
 }
 
 /// A message sent to the client over WebSocket.
@@ -88,6 +106,22 @@ enum ServerMsg {
     UserInfo { id: u64, info: Option<UserInfo> },
     /// Broadcasts a user's cursor position.
     UserCursor { id: u64, data: CursorData },
+    /// Lists the languages this server can run.
+    Runtimes(Vec<Runtime>),
+    /// Broadcasts that a user started a run.
+    RunStarted { id: u64 },
+    /// Broadcasts the result of a finished run.
+    RunFinished {
+        id: u64,
+        language: String,
+        runtime: String,
+        version: String,
+        compile: Option<Box<RunStage>>,
+        run: Option<Box<RunStage>>,
+        duration_ms: u64,
+    },
+    /// Broadcasts that a run could not complete.
+    RunFailed { id: u64, error: String },
 }
 
 impl From<ServerMsg> for Message {
@@ -106,6 +140,8 @@ impl Default for Rustpad {
             notify: Default::default(),
             update: tx,
             killed: AtomicBool::new(false),
+            runner: None,
+            run: Default::default(),
         }
     }
 }
@@ -128,6 +164,10 @@ impl From<PersistedDocument> for Rustpad {
         rustpad
     }
 }
+
+/// Largest document that can be run, in bytes. go-judge accepts more, but the
+/// server keeps the request and the shared result small.
+const MAX_RUN_CODE_BYTES: usize = 64 * 1024;
 
 impl Rustpad {
     /// Handle a connection from a WebSocket.
@@ -177,10 +217,20 @@ impl Rustpad {
         self.killed.load(Ordering::Relaxed)
     }
 
+    /// Enables code execution for this document.
+    pub(crate) fn with_runner(mut self, runner: Option<Runner>) -> Self {
+        self.runner = runner;
+        self
+    }
+
     async fn handle_connection(&self, id: u64, mut socket: WebSocket) -> Result<()> {
         let mut update_rx = self.update.subscribe();
 
-        let mut revision: usize = self.send_initial(id, &mut socket).await?;
+        let mut runtimes_rx = self.runner.as_ref().map(|r| r.runtimes.clone());
+
+        let mut revision: usize = self
+            .send_initial(id, &mut socket, runtimes_rx.as_mut())
+            .await?;
 
         loop {
             // In order to avoid the "lost wakeup" problem, we first request a
@@ -199,6 +249,9 @@ impl Rustpad {
                 update = update_rx.recv() => {
                     socket.send(update?.into()).await?;
                 }
+                Some(runtimes) = next_runtimes(&mut runtimes_rx) => {
+                    socket.send(ServerMsg::Runtimes(runtimes).into()).await?;
+                }
                 result = socket.next() => {
                     match result {
                         None => break,
@@ -213,7 +266,12 @@ impl Rustpad {
         Ok(())
     }
 
-    async fn send_initial(&self, id: u64, socket: &mut WebSocket) -> Result<usize> {
+    async fn send_initial(
+        &self,
+        id: u64,
+        socket: &mut WebSocket,
+        runtimes_rx: Option<&mut watch::Receiver<Vec<Runtime>>>,
+    ) -> Result<usize> {
         socket.send(ServerMsg::Identity(id).into()).await?;
         let mut messages = Vec::new();
         let revision = {
@@ -239,6 +297,16 @@ impl Rustpad {
                     data: data.clone(),
                 });
             }
+            if let Some(rx) = runtimes_rx {
+                messages.push(ServerMsg::Runtimes(rx.borrow_and_update().clone()));
+            }
+            let run = self.run.lock();
+            if let Some(id) = run.running {
+                messages.push(ServerMsg::RunStarted { id });
+            } else if let Some(last) = &run.last {
+                messages.push(last.clone());
+            }
+            drop(run);
             state.operations.len()
         };
         for msg in messages {
@@ -296,8 +364,89 @@ impl Rustpad {
                 let msg = ServerMsg::UserCursor { id, data };
                 self.update.send(msg).ok();
             }
+            ClientMsg::Run => self.start_run(id),
         }
         Ok(())
+    }
+
+    /// Starts running the document for user `id`, unless a run is in progress.
+    fn start_run(&self, id: u64) {
+        let Some(runner) = &self.runner else {
+            warn!("run requested by id = {}, but code execution is off", id);
+            return;
+        };
+        let (text, language) = {
+            let state = self.state.read();
+            let language = state.language.clone();
+            (
+                state.text.clone(),
+                language.unwrap_or_else(|| "plaintext".into()),
+            )
+        };
+        let runtime = runner
+            .runtimes
+            .borrow()
+            .iter()
+            .find(|r| r.language == language)
+            .cloned();
+
+        let mut run = self.run.lock();
+        if run.running.is_some() {
+            info!("run requested by id = {} while busy, ignoring", id);
+            return;
+        }
+        let Some(runtime) = runtime else {
+            let msg = ServerMsg::RunFailed {
+                id,
+                error: format!("No runtime for {language}"),
+            };
+            run.last = Some(msg.clone());
+            self.update.send(msg).ok();
+            return;
+        };
+        if text.len() > MAX_RUN_CODE_BYTES {
+            let msg = ServerMsg::RunFailed {
+                id,
+                error: "Code too large to run (64 KiB limit)".into(),
+            };
+            run.last = Some(msg.clone());
+            self.update.send(msg).ok();
+            return;
+        }
+        run.running = Some(id);
+        self.update.send(ServerMsg::RunStarted { id }).ok();
+        drop(run);
+
+        info!(
+            "run: id = {}, runtime = {} {}",
+            id, runtime.runtime, runtime.version
+        );
+        let client = runner.client.clone();
+        let run_state = Arc::clone(&self.run);
+        let update = self.update.clone();
+        tokio::spawn(async move {
+            let started = Instant::now();
+            let result = client.execute(&runtime.language, &text).await;
+            let msg = match result {
+                Ok(output) => ServerMsg::RunFinished {
+                    id,
+                    language: runtime.language,
+                    runtime: runtime.runtime,
+                    version: runtime.version,
+                    compile: output.compile.map(Box::new),
+                    run: output.run.map(Box::new),
+                    duration_ms: started.elapsed().as_millis() as u64,
+                },
+                Err(e) => ServerMsg::RunFailed {
+                    id,
+                    error: e.to_string(),
+                },
+            };
+            let mut run = run_state.lock();
+            run.running = None;
+            run.last = Some(msg.clone());
+            update.send(msg).ok();
+        });
     }
 
     fn apply_edit(&self, id: u64, revision: usize, mut operation: OperationSeq) -> Result<()> {
@@ -336,5 +485,16 @@ impl Rustpad {
         state.operations.push(UserOperation { id, operation });
         state.text = new_text;
         Ok(())
+    }
+}
+
+/// Waits for the runtime list to change, or forever if code execution is off.
+async fn next_runtimes(rx: &mut Option<watch::Receiver<Vec<Runtime>>>) -> Option<Vec<Runtime>> {
+    match rx {
+        Some(rx) => {
+            rx.changed().await.ok()?;
+            Some(rx.borrow_and_update().clone())
+        }
+        None => future::pending().await,
     }
 }

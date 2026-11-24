@@ -42,3 +42,4 @@ pub async fn expect_text(filter: &BoxedFilter<(impl Reply + 'static,)>, id: &str
     assert_eq!(resp.status(), 200);
     assert_eq!(resp.body(), text);
 }
+pub mod go_judge;

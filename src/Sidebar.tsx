@@ -13,12 +13,12 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
-import { VscRepo } from "react-icons/vsc";
+import { VscPlay, VscRepo } from "react-icons/vsc";
 
 import ConnectionStatus from "./ConnectionStatus";
 import User from "./User";
 import languages from "./languages.json";
-import type { UserInfo } from "./rustpad";
+import type { Runtime, UserInfo } from "./rustpad";
 
 export type SidebarProps = {
   documentId: string;
@@ -32,6 +32,10 @@ export type SidebarProps = {
   onLoadSample: () => void;
   onChangeName: (name: string) => void;
   onChangeColor: () => void;
+  runtimes: Runtime[] | null;
+  canRun: boolean;
+  running: boolean;
+  onRun: () => void;
 };
 
 function Sidebar({
@@ -46,6 +50,10 @@ function Sidebar({
   onLoadSample,
   onChangeName,
   onChangeColor,
+  runtimes,
+  canRun,
+  running,
+  onRun,
 }: SidebarProps) {
   const toast = useToast();
 
@@ -96,6 +104,26 @@ function Sidebar({
           </option>
         ))}
       </Select>
+      <Button
+        size="sm"
+        w="full"
+        mt={2}
+        colorScheme="green"
+        leftIcon={<VscPlay />}
+        isLoading={running}
+        loadingText="Running"
+        isDisabled={!canRun}
+        onClick={onRun}
+      >
+        Run
+      </Button>
+      {runtimes !== null && !runtimes.some((r) => r.language === language) && (
+        <Text fontSize="xs" mt={1} color={darkMode ? "gray.400" : "gray.600"}>
+          {runtimes.length === 0
+            ? "Code runner unavailable"
+            : `No runtime for ${language}`}
+        </Text>
+      )}
 
       <Heading mt={4} mb={1.5} size="sm">
         Share Link

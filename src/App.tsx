@@ -8,10 +8,11 @@ import useLocalStorageState from "use-local-storage-state";
 import rustpadRaw from "../rustpad-server/src/rustpad.rs?raw";
 import Footer from "./Footer";
 import ReadCodeConfirm from "./ReadCodeConfirm";
+import RunOutput, { type RunState } from "./RunOutput";
 import Sidebar from "./Sidebar";
 import animals from "./animals.json";
 import languages from "./languages.json";
-import Rustpad, { UserInfo } from "./rustpad";
+import Rustpad, { Runtime, UserInfo } from "./rustpad";
 import useHash from "./useHash";
 
 function getWsUri(id: string) {
@@ -49,6 +50,11 @@ function App() {
   const id = useHash();
 
   const [readCodeConfirmOpen, setReadCodeConfirmOpen] = useState(false);
+  const [runtimes, setRuntimes] = useState<Runtime[] | null>(null);
+  const [run, setRun] = useState<RunState>({ status: "idle", by: null });
+  const [outputOpen, setOutputOpen] = useState(false);
+  const runRef = useRef(() => {});
+  const canRunKey = useRef<editor.IContextKey<boolean>>();
 
   useEffect(() => {
     if (editor?.getModel()) {
@@ -58,8 +64,14 @@ function App() {
       rustpad.current = new Rustpad({
         uri: getWsUri(id),
         editor,
-        onConnected: () => setConnection("connected"),
-        onDisconnected: () => setConnection("disconnected"),
+        onConnected: () => {
+          setConnection("connected");
+          setRun({ status: "idle", by: null });
+        },
+        onDisconnected: () => {
+          setConnection("disconnected");
+          setRuntimes(null);
+        },
         onDesynchronized: () => {
           setConnection("desynchronized");
           toast({
@@ -75,6 +87,19 @@ function App() {
           }
         },
         onChangeUsers: setUsers,
+        onRuntimes: setRuntimes,
+        onRunStarted: (by) => {
+          setRun({ status: "running", by });
+          setOutputOpen(true);
+        },
+        onRunFinished: (by, result) => {
+          setRun({ status: "finished", by, result });
+          setOutputOpen(true);
+        },
+        onRunFailed: (by, error) => {
+          setRun({ status: "failed", by, error });
+          setOutputOpen(true);
+        },
       });
       return () => {
         rustpad.current?.dispose();
@@ -137,6 +162,20 @@ function App() {
     setDarkMode(!darkMode);
   }
 
+  const canRun =
+    connection === "connected" &&
+    run.status !== "running" &&
+    (runtimes?.some((r) => r.language === language) ?? false);
+
+  function handleRun() {
+    if (canRun) rustpad.current?.run();
+  }
+  runRef.current = handleRun;
+
+  useEffect(() => {
+    canRunKey.current?.set(canRun);
+  }, [canRun]);
+
   return (
     <Flex
       direction="column"
@@ -168,6 +207,10 @@ function App() {
           onLoadSample={() => handleLoadSample(false)}
           onChangeName={(name) => name.length > 0 && setName(name)}
           onChangeColor={() => setHue(generateHue())}
+          runtimes={runtimes}
+          canRun={canRun}
+          running={run.status === "running"}
+          onRun={handleRun}
         />
         <ReadCodeConfirm
           isOpen={readCodeConfirmOpen}
@@ -202,9 +245,29 @@ function App() {
                 automaticLayout: true,
                 fontSize: 13,
               }}
-              onMount={(editor) => setEditor(editor)}
+              onMount={(editor, monaco) => {
+                setEditor(editor);
+                // Ctrl/Cmd+Enter runs only when a run is possible; otherwise
+                // Monaco's default "insert line below" applies.
+                canRunKey.current = editor.createContextKey(
+                  "rustpadCanRun",
+                  false,
+                );
+                editor.addCommand(
+                  monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+                  () => runRef.current(),
+                  "rustpadCanRun",
+                );
+              }}
             />
           </Box>
+          {outputOpen && run.status !== "idle" && (
+            <RunOutput
+              run={run}
+              darkMode={darkMode}
+              onClose={() => setOutputOpen(false)}
+            />
+          )}
         </Flex>
       </Flex>
       <Footer />

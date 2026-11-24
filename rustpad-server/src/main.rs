@@ -1,4 +1,4 @@
-use rustpad_server::{server, database::Database, ServerConfig};
+use rustpad_server::{database::Database, runner::GoJudgeClient, server, ServerConfig};
 
 #[tokio::main]
 async fn main() {
@@ -23,7 +23,16 @@ async fn main() {
             ),
             Err(_) => None,
         },
+        runner: non_empty_var("GO_JUDGE_URL").map(|url| {
+            GoJudgeClient::new(&url, non_empty_var("GO_JUDGE_TOKEN"))
+                .expect("Unable to parse GO_JUDGE_URL")
+        }),
     };
 
     warp::serve(server(config)).run(([0, 0, 0, 0], port)).await;
+}
+
+/// Reads an environment variable; empty counts as unset.
+fn non_empty_var(name: &str) -> Option<String> {
+    std::env::var(name).ok().filter(|value| !value.is_empty())
 }

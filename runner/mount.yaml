@@ -1,0 +1,90 @@
+mount:
+  # Basic binaries and libraries
+  - type: bind
+    source: /bin
+    target: /bin
+    readonly: true
+  - type: bind
+    source: /lib
+    target: /lib
+    readonly: true
+  - type: bind
+    source: /lib64
+    target: /lib64
+    readonly: true
+  - type: bind
+    source: /usr
+    target: /usr
+    readonly: true
+  - type: bind
+    source: /etc/ld.so.cache
+    target: /etc/ld.so.cache
+    readonly: true
+  # Some compilers have multiple versions
+  - type: bind
+    source: /etc/alternatives
+    target: /etc/alternatives
+    readonly: true
+  # java 21 wants /etc/java-21-openjdk
+  - type: bind
+    source: /etc/java-21-openjdk
+    target: /etc/java-21-openjdk
+    readonly: true
+  # Devices
+  - type: bind
+    source: /dev/null
+    target: /dev/null
+  - type: bind
+    source: /dev/urandom
+    target: /dev/urandom
+  - type: bind
+    source: /dev/random
+    target: /dev/random
+  - type: bind
+    source: /dev/zero
+    target: /dev/zero
+  # work dir
+  - type: tmpfs
+    target: /w
+    data: size=128m,nr_inodes=4k
+  # tmp dir
+  - type: tmpfs
+    target: /tmp
+    data: size=128m,nr_inodes=4k
+# java wants /proc/self/exe
+proc: true
+# create /dev standard io
+symLink:
+  - linkPath: /dev/fd
+    target: /proc/self/fd
+  - linkPath: /dev/stdin
+    target: /proc/self/fd/0
+  - linkPath: /dev/stdout
+    target: /proc/self/fd/1
+  - linkPath: /dev/stderr
+    target: /proc/self/fd/2
+# mask mounted paths with empty / null mount
+maskPath:
+  - /sys/firmware
+  - /sys/devices/virtual/powercap
+  - /proc/acpi
+  - /proc/asound
+  - /proc/kcore
+  - /proc/keys
+  - /proc/latency_stats
+  - /proc/timer_list
+  - /proc/timer_stats
+  - /proc/sched_debug
+  - /proc/scsi
+  - /usr/lib/wsl/drivers
+  - /usr/lib/wsl/lib
+# container work directory
+workDir: /w
+# container host name
+hostName: go-judge
+# container domain name
+domainName: go-judge
+# container user uid
+uid: 1536
+# container user gid
+gid: 1536

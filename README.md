@@ -1,35 +1,9 @@
 # Rustpad
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/ekzhang/rustpad)](https://hub.docker.com/r/ekzhang/rustpad/)
-[![Docker Image Size](https://img.shields.io/docker/image-size/ekzhang/rustpad/latest)](https://hub.docker.com/r/ekzhang/rustpad/)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/ekzhang/rustpad/ci.yml)](https://github.com/ekzhang/rustpad/actions/workflows/ci.yml)
+This is a fork of: [https://github.com/ekzhang/rustpad](https://github.com/ekzhang/rustpad)
 
-**Rustpad** is an _efficient_ and _minimal_ open-source collaborative text
-editor based on the operational transformation algorithm. It lets users
-collaborate in real time while writing code in their browser. Rustpad is
-completely self-hosted and fits in a tiny Docker image, no database required.
+See upstream readme for app description and most details.
 
-<p align="center">
-<a href="https://rustpad.io/">
-<img src="https://i.imgur.com/WjU5UrP.png" width="800"><br>
-<strong>rustpad.io</strong>
-</a>
-</p>
-
-The server is written in Rust using the
-[warp](https://github.com/seanmonstar/warp) web server framework and the
-[operational-transform](https://github.com/spebern/operational-transform-rs)
-library. We use [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen) to
-compile text operation logic to WebAssembly code, which runs in the browser. The
-frontend is written in TypeScript using [React](https://reactjs.org/) and
-interfaces with [Monaco](https://github.com/microsoft/monaco-editor), the text
-editor that powers VS Code.
-
-Architecturally, client-side code communicates via WebSocket with a central
-server that stores in-memory data structures. This makes the editor very fast,
-allows us to avoid provisioning a database, and makes testing much easier. The
-tradeoff is that documents are transient and lost between server restarts, or
-after 24 hours of inactivity.
 
 ## Development setup
 
@@ -51,6 +25,14 @@ Next, compile and run the backend web server:
 
 ```
 cargo run
+```
+
+To turn on the Run button, start the compose runner (see
+[Code execution](#code-execution)) and point the server at it:
+
+```
+podman compose -f compose/compose.yml up --build -d runner
+GO_JUDGE_URL=http://127.0.0.1:5050 cargo run
 ```
 
 While the backend is running, open another shell and run the following command
@@ -91,27 +73,91 @@ following environment variables on startup:
 - `RUST_LOG`: Directives that control application logging, see the
   [env_logger](https://docs.rs/env_logger/#enabling-logging) docs for more
   information.
+- `GO_JUDGE_URL`: Base URL of the go-judge code runner, such as
+  `http://runner:5050`. Code execution is off when this is unset.
+- `GO_JUDGE_TOKEN`: Bearer token that Rustpad sends to the code runner
+  (optional).
+
+## Code execution
+
+Rustpad runs the code in a pad through a [go-judge](https://github.com/criyle/go-judge)
+runner. The runner image lives in `runner/`, and `compose/compose.yml` starts
+it next to Rustpad.
+
+On a Mac, the stack needs a rootful Podman machine:
+
+```
+podman machine stop
+podman machine set --rootful
+podman machine start
+```
+
+To build, start and smoke-test the stack, run from the repository root:
+
+```
+./build.sh
+podman compose -f compose/compose.yml up --build -d
+compose/smoke-test.sh
+```
+
+Open `http://localhost:3030`, then press the Run button or `Ctrl/Cmd+Enter`.
+
+The runner supports these languages. Times are wall-clock, for a hello
+world on an Apple Silicon Mac.
+
+| Language   | Runtime | Version   | Compile | Run    |
+| ---------- | ------- | --------- | ------- | ------ |
+| Python     | python  | 3.13.5    | -       | 6 ms   |
+| C          | gcc     | 14.2.0    | 24 ms   | < 1 ms |
+| C++        | g++     | 14.2.0    | 0.21 s  | 1 ms   |
+| Java       | java    | 21.0.13.1 | 0.26 s  | 18 ms  |
+| Kotlin     | kotlin  | 2.4.21    | 2.6 s   | 22 ms  |
+| JavaScript | node    | 20.19.2   | -       | 58 ms  |
+
+The runner image is 979 MB on arm64.
+
+### Runner in production
+
+- Run the runner on a dedicated node pool whose nodes have no cloud
+  permissions.
+- Give the runner its own namespace at PodSecurity level `privileged`. Run the
+  pod with `privileged: true`, no service account token, no hostPath volumes,
+  and CPU and memory limits.
+- Add a NetworkPolicy that allows ingress on port 5050 only from Rustpad pods
+  and denies all egress, DNS included.
+- Set `GO_JUDGE_TOKEN` on Rustpad and the same value in `ES_AUTH_TOKEN` on the
+  runner.
+- Expose the runner through a ClusterIP Service only.
+- Set `ES_PARALLELISM` on the runner to the number of runs it may execute at
+  once.
+- Set the runner pod memory limit to at least `ES_PARALLELISM` × 1.3 GiB.
 
 ## Deployment
 
-Rustpad is distributed as a single 6 MB Docker image, which is built
-automatically from the `Dockerfile` in this repository. You can pull the latest
-version of this image from Docker Hub. It has multi-platform support for
-`linux/amd64` and `linux/arm64`.
+`build.sh` builds the frontend and a static Linux server binary on the host,
+and the `Dockerfile` copies them into the image. The build runs on macOS or
+Linux and needs `rustup`, `zig`, `cargo-zigbuild`, `wasm-pack` and `npm`.
 
 ```
-docker pull ekzhang/rustpad
+./build.sh
+podman build -t rustpad .
 ```
 
-(You can also manually build this image with `docker build -t rustpad .` in the
-project root directory.) To run locally, execute the following command, then
-open `http://localhost:3030` in your browser.
+`build.sh` targets the host architecture. Set `ARCH` to pick others:
+
+- `ARCH=amd64`
+- `ARCH=arm64`
+- `ARCH="amd64 arm64"`
+
+To run the image, execute the following command, then open
+`http://localhost:3030` in your browser.
 
 ```
-docker run --rm -dp 3030:3030 ekzhang/rustpad
+podman run --rm -dp 3030:3030 rustpad
 ```
 
-We deploy a public instance of this image using [Fly.io](https://fly.io/).
+To turn on code execution, set `GO_JUDGE_URL` to a runner started as described
+in [Code execution](#code-execution).
 
 ## In the media
 

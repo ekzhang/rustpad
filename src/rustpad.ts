@@ -15,6 +15,10 @@ export type RustpadOptions = {
   readonly onDesynchronized?: () => void;
   readonly onChangeLanguage?: (language: string) => void;
   readonly onChangeUsers?: (users: Record<number, UserInfo>) => void;
+  readonly onRuntimes?: (runtimes: Runtime[]) => void;
+  readonly onRunStarted?: (by: UserInfo | null) => void;
+  readonly onRunFinished?: (by: UserInfo | null, result: RunResult) => void;
+  readonly onRunFailed?: (by: UserInfo | null, error: string) => void;
   readonly reconnectInterval?: number;
 };
 
@@ -22,6 +26,33 @@ export type RustpadOptions = {
 export type UserInfo = {
   readonly name: string;
   readonly hue: number;
+};
+
+/** A language this server can run, with the tool that runs it. */
+export type Runtime = {
+  readonly language: string;
+  readonly runtime: string;
+  readonly version: string;
+};
+
+/** Output of one stage (compile or run) of a code run. */
+export type RunStage = {
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly code: number | null;
+  readonly signal: string | null;
+  readonly status: string | null;
+  readonly truncated: boolean;
+};
+
+/** Result of a finished code run. `run` is null when compilation failed. */
+export type RunResult = {
+  readonly language: string;
+  readonly runtime: string;
+  readonly version: string;
+  readonly compile: RunStage | null;
+  readonly run: RunStage | null;
+  readonly duration_ms: number;
 };
 
 /** Browser client for Rustpad. */
@@ -106,6 +137,12 @@ class Rustpad {
   setInfo(info: UserInfo) {
     this.myInfo = info;
     this.sendInfo();
+  }
+
+  /** Ask the server to run the document, if connected. */
+  run(): boolean {
+    this.ws?.send(`"Run"`);
+    return this.ws !== undefined;
   }
 
   /**
@@ -197,7 +234,23 @@ class Rustpad {
         this.userCursors[id] = data;
         this.updateCursors();
       }
+    } else if (msg.Runtimes !== undefined) {
+      this.options.onRuntimes?.(msg.Runtimes);
+    } else if (msg.RunStarted !== undefined) {
+      this.options.onRunStarted?.(this.userInfo(msg.RunStarted.id));
+    } else if (msg.RunFinished !== undefined) {
+      const { id, ...result } = msg.RunFinished;
+      this.options.onRunFinished?.(this.userInfo(id), result);
+    } else if (msg.RunFailed !== undefined) {
+      const { id, error } = msg.RunFailed;
+      this.options.onRunFailed?.(this.userInfo(id), error);
     }
+  }
+
+  /** Returns the info of a user in this pad, including this client. */
+  private userInfo(id: number): UserInfo | null {
+    if (id === this.me) return this.myInfo ?? null;
+    return this.users[id] ?? null;
   }
 
   private serverAck() {
@@ -452,6 +505,10 @@ type ServerMsg = {
     id: number;
     data: CursorData;
   };
+  Runtimes?: Runtime[];
+  RunStarted?: { id: number };
+  RunFinished?: RunResult & { id: number };
+  RunFailed?: { id: number; error: string };
 };
 
 /** Returns the number of Unicode codepoints in a string. */

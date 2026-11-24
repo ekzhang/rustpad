@@ -1,0 +1,24 @@
+# Local stack: Rustpad plus the go-judge runner.
+#   ./build.sh
+#   podman compose -f compose/compose.yml up --build -d
+#   compose/smoke-test.sh
+services:
+  rustpad:
+    build: ..
+    image: localhost/rustpad:dev
+    environment:
+      GO_JUDGE_URL: http://runner:5050
+      RUST_LOG: info
+    ports:
+      - "127.0.0.1:3030:3030"
+    depends_on:
+      - runner
+
+  runner:
+    build: ../runner
+    image: localhost/rustpad-runner:dev
+    # go-judge creates namespaces and cgroups for every run.
+    privileged: true
+    shm_size: 256m
+    ports:
+      - "127.0.0.1:5050:5050"
