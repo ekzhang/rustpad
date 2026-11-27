@@ -1,3 +1,17 @@
+# Dockerfile copies the build.sh output; Dockerfile.ci copies the sources.
 *
 !dist
 !build
+!Cargo.toml
+!Cargo.lock
+!rustpad-server
+!rustpad-wasm
+rustpad-wasm/pkg
+rustpad-wasm/target
+!package.json
+!package-lock.json
+!index.html
+!tsconfig.json
+!vite.config.ts
+!public
+!src

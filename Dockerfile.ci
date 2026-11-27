@@ -1,0 +1,63 @@
+# CI build: compiles everything inside the image, so the shared Jenkins job
+# utilities/ecr-build-and-publish can build it from a plain checkout. Local
+# builds use ./build.sh and the Dockerfile instead. Runs the same steps as
+# build.sh, for the architecture of the build host.
+#   podman build -f Dockerfile.ci --build-arg VITE_SHA=$(git rev-parse HEAD) .
+
+FROM docker.io/library/rust:1.95-slim-trixie AS wasm
+ARG WASM_PACK_VERSION=0.15.1
+ARG WASM_PACK_SHA256_AMD64=410101009739b9d01c7d5affaaad6e9c9a24b4cba6791a4805db8e89b9bf7af2
+ARG WASM_PACK_SHA256_ARM64=7004853c7925ae1984033b5f25866ec604bbc921ef956d5e6c5595bc5af6d30c
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+RUN case "$(uname -m)" in \
+        x86_64) sha="$WASM_PACK_SHA256_AMD64" ;; \
+        aarch64) sha="$WASM_PACK_SHA256_ARM64" ;; \
+        *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
+    esac \
+    && name="wasm-pack-v${WASM_PACK_VERSION}-$(uname -m)-unknown-linux-musl" \
+    && curl -fsSL -o /wasm-pack.tar.gz \
+        "https://github.com/rustwasm/wasm-pack/releases/download/v${WASM_PACK_VERSION}/${name}.tar.gz" \
+    && echo "${sha}  /wasm-pack.tar.gz" | sha256sum -c - \
+    && tar -xzf /wasm-pack.tar.gz -C /usr/local/bin --strip-components=1 "${name}/wasm-pack" \
+    && rm /wasm-pack.tar.gz
+WORKDIR /src
+COPY Cargo.toml Cargo.lock ./
+COPY rustpad-server rustpad-server
+COPY rustpad-wasm rustpad-wasm
+RUN wasm-pack build rustpad-wasm
+
+FROM docker.io/library/node:24-trixie-slim AS frontend
+# Shown in the footer; the pipeline passes the commit SHA.
+ARG VITE_SHA=
+WORKDIR /src
+COPY package.json package-lock.json ./
+COPY --from=wasm /src/rustpad-wasm/pkg rustpad-wasm/pkg
+RUN npm ci
+COPY index.html tsconfig.json vite.config.ts ./
+COPY public public
+COPY src src
+# The editor opens with this file as its sample text.
+COPY rustpad-server/src/rustpad.rs rustpad-server/src/rustpad.rs
+RUN npm run check \
+    && if [ -z "$VITE_SHA" ]; then unset VITE_SHA; fi \
+    && npm run build
+
+# Alpine's Rust targets musl and links statically, as build.sh does.
+FROM docker.io/library/rust:1.95-alpine AS server
+RUN apk add --no-cache musl-dev
+WORKDIR /src
+COPY Cargo.toml Cargo.lock ./
+COPY rustpad-server rustpad-server
+COPY rustpad-wasm rustpad-wasm
+# A server test checks its language table against the frontend's.
+COPY src/languages.json src/languages.json
+RUN cargo test -p rustpad-server --release --locked \
+    && cargo build -p rustpad-server --release --locked
+
+FROM scratch
+COPY --from=frontend /src/dist dist
+COPY --from=server /src/target/release/rustpad-server .
+USER 1000:1000
+CMD [ "./rustpad-server" ]

@@ -159,6 +159,27 @@ podman run --rm -dp 3030:3030 rustpad
 To turn on code execution, set `GO_JUDGE_URL` to a runner started as described
 in [Code execution](#code-execution).
 
+### CI
+
+The `Jenkinsfile` runs on build.viacom.com for every push to `main`:
+
+1. `utilities/ecr-build-and-publish` builds both images for amd64 and arm64
+   and pushes them to the nonprod ECR, tagged with the commit SHA:
+   - `devops/devops-rustpad` from `Dockerfile.ci`
+   - `devops/devops-rustpad-runner` from `runner/Dockerfile`
+2. `utilities/eks-rolling-update-deploy` sets the new tags in
+   `viacomcbs/devops-k8s-applications` and waits for ArgoCD, runner first.
+
+`Dockerfile.ci` builds from a plain checkout and runs the same steps as
+`build.sh`. To check it locally:
+
+```
+podman build -f Dockerfile.ci --build-arg VITE_SHA=$(git rev-parse HEAD) .
+```
+
+ECR tags are immutable. To release a commit again, run the job with
+`BUILD_IMAGES` unticked.
+
 ## In the media
 
 - **July 11, 2021:** Featured in
